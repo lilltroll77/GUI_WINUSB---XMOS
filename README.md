@@ -1,4 +1,4 @@
-# GUI_WINUSB---XMOS
+# GUI WINUSB <->  XMOS
 GUI for testing WINUSB &lt;-> XMOS USB
 
 Qt code for testing the WINUSB driver together with https://libusb.info/ against XMOS in bulk and iso mode.
