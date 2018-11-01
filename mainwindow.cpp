@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <QChartView>
 #include <QLineSeries>
+#include <QWidget>
+#include <QGroupBox>
+#include <QLayout>
+
 QT_CHARTS_USE_NAMESPACE
 
 #define SUPERBLOCKS 1
@@ -169,77 +173,102 @@ MainWindow::MainWindow(QWidget *parent) :
         for(int i=0; i< ABUFFERS ; i++)
             qDebug()<<mem[j][i].index <<mem[j][i].slow.temp <<mem[j][i].mid.pos;
 */
-    QLineSeries *seriesIA = new QLineSeries(this);
-    QLineSeries *seriesIB = new QLineSeries(this);
-    QLineSeries *seriesIC = new QLineSeries(this);
-    QLineSeries *seriesQE = new QLineSeries(this);
-    QLineSeries *seriesAngle = new QLineSeries(this);
-    QList<QPointF> IA , IB , IC , QE , angle;
-    IA.reserve(128*ABUFFERS);
-    IB.reserve(128*ABUFFERS);
-    IC.reserve(128*ABUFFERS);
-    QE.reserve(128*ABUFFERS);
-    angle.reserve(128*ABUFFERS);
+    enum plots_e{IA , IB , IC, Flux , Torque , SetFlux , SetTorque};
+
+    static const int len = 7;
+    qDebug() << len;
+    QList<QPointF> plot_list[len];
+    QLineSeries *series[len];
+    QString Namestr[]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
+
+        for(int i=0; i<len ; i++){
+            series[i] = new QLineSeries(this);
+            series[i]->setName(Namestr[i]);
+        }
+        for(int i=0; i<len-2 ; i++)
+            plot_list[i].reserve(128*ABUFFERS);
+
+
     qreal dt= 26*64/5e5;
     int block=0;
     for(int block=0; block<BUFFERS; block++){
         for(int ablock=0; ablock<ABUFFERS; ablock++){
             for(int i=0; i<128 ; i++){
                 QPointF point;
-                point.setX(dt*(i+128*ablock));
                 hispeed_vector_t* fast = &mem[block][ablock].fast;
+                point.setX(fast->QE[i]*360.0/8192.0);
+                //qDebug()<<point;
+                point.setY(fast->IA[i]/4096.0);
+                plot_list[IA].append(point);
 
-                point.setY(fast->IA[i]);
-                IA.append(point);
+                point.setY(fast->IC[i]/4096.0);
+                plot_list[IC].append(point);
 
-                point.setY(fast->IC[i]);
-                IC.append(point);
+                point.setY(- (fast->IA[i]+ fast->IC[i])/4096.0);
+                plot_list[IB].append(point);
 
-                point.setY(-fast->IA[i] - fast->IC[i]);
-                IB.append(point);
+                point.setY(fast->Torque[i]/4096.0);
+                plot_list[Torque].append(point);
 
-                point.setY(fast->QE[i]);
-                QE.append(point);
-                //qDebug() << mem[0][x].fast.IA[i] << mem[0][x].checknumber;
-
-                point.setY(fast->angle[i]);
-                angle.append(point);
+                point.setY(fast->Flux[i]/4096.0);
+                plot_list[Flux].append(point);
 
             }
         }
-    seriesIA->  append(IA);
-    seriesIB->  append(IB);
-    seriesIC->  append(IC);
-    seriesQE->  append(QE);
-   seriesAngle->append(angle);
 
-    seriesIA->setName("I phase A");
-    seriesIB->setName("I phase B");
-    seriesIC->setName("I phase C");
-    seriesQE->setName("QE");
- seriesAngle->setName("Angle Out");
+    for(int i=0; i<len-2 ; i++)
+        series[i]->append(plot_list[i]);
 
-    QChart *chart = new QChart();
-    chart->addSeries(seriesIA);
-    chart->addSeries(seriesIB);
-    chart->addSeries(seriesIC);
-    chart->addSeries(seriesQE);
-    chart->addSeries(seriesAngle);
+   series[SetFlux]->append(0 , 0);
+   series[SetFlux]->append(360 , 0);
 
-    chart->createDefaultAxes();
-    QAbstractAxis* Xaxis =chart->axisX();
-    QAbstractAxis* Yaxis =chart->axisY();
-    Xaxis->setRange(0 , 30);
-    Xaxis->setTitleText("Time [ms]");
-    Yaxis->setRange(-10000 , 10000);
+   series[SetTorque]->append(0 , 1);
+   series[SetTorque]->append(360 , 1);
 
 
-    chart->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
+    QChart *I_chart =  new QChart();
+    QChart *PI_chart = new QChart();
 
-    QChartView *chartView = new QChartView(chart);
-    chartView->setRenderHint(QPainter:: Antialiasing);
-    this->setCentralWidget(chartView);
-    /*
+     for(int i=IA; i<=IC ; i++)
+        I_chart ->addSeries(series[i]);
+
+     for(int i=Flux; i<=SetTorque ; i++)
+        PI_chart ->addSeries(series[i]);
+
+    I_chart->createDefaultAxes();
+    PI_chart->createDefaultAxes();
+
+    QAbstractAxis* Xaxis =I_chart-> axisX();
+    QAbstractAxis* Yaxis =I_chart-> axisY();
+
+    Xaxis->setRange(0 , 360);
+    Xaxis->setTitleText("Shaft angle Deg°");
+    Yaxis->setRange(-2.5 , 2.5);
+    Yaxis->setTitleText("Current [A]");
+
+    Xaxis = PI_chart->axisX();
+    Yaxis = PI_chart->axisY();
+    Xaxis->setRange(0 , 360);
+    Yaxis->setRange(-0.5 , 2.5);
+    Xaxis->setTitleText("Shaft angle Deg°");
+
+    I_chart->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
+    PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
+
+    QChartView *IView = new QChartView(I_chart);
+    QChartView *PIView = new QChartView(PI_chart);
+
+    IView->setRenderHint(QPainter:: Antialiasing);
+    PIView  ->setRenderHint(QPainter:: Antialiasing);
+
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
+    layout->addWidget(IView);
+    layout->addWidget(PIView);
+
+    QGroupBox *box = new QGroupBox("Plots" , this);
+    box->setLayout(layout);
+    this->setCentralWidget(box);
+        /*
     rewind(fid );
     int b=0;
 
