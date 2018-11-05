@@ -35,7 +35,9 @@ HEADERS += \
         libusb.h \
     usb_helper_functions.h \
     data_struct.h \
-    usbbulk.h
+    usbbulk.h \
+    ffft/FFTReal.h \
+    ffft/FFTRealFixLen.h
 
 FORMS += \
         mainwindow.ui

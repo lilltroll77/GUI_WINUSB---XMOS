@@ -9,10 +9,14 @@
 #include <QtCore/qglobal.h>
 #include <QObject>
 #include "data_struct.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <qapplication.h>
+#include <QTextStream>
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv); 
+    QApplication a(argc, argv);
     MainWindow* w = new MainWindow();
     USBbulk usb(w);
     w->show();

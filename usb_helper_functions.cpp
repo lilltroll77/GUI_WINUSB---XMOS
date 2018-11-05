@@ -23,7 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-
+#include <QDebug>
+#include <QString>
 #include "libusb.h"
 
 #if defined(_WIN32)
@@ -974,43 +975,44 @@ int test_device(uint16_t vid, uint16_t pid)
     return 0;
 }
 
-libusb_device * print_devs(libusb_device *devs[])
+libusb_device * print_devs(libusb_device *devs[] , int VID , int PID)
 {
     libusb_device *dev;
     int i = 0, j = 0;
     uint8_t path[8];
     libusb_device *XMOSdev=nullptr;
-
+    QString info;
     while ((dev = devs[i++]) != NULL) {
         struct libusb_device_descriptor desc;
         int r = libusb_get_device_descriptor(dev, &desc);
         if (r < 0) {
-            fprintf(stderr, "failed to get device descriptor");
+            qWarning("failed to get device descriptor");
             return XMOSdev;
         }
 
 
-        printf("%04x:%04x (bus %d, device %d)",
+       info.sprintf("%04x:%04x (bus %d, device %d)",
             desc.idVendor, desc.idProduct,
             libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
-        if((desc.idVendor == 0x20b1) && (desc.idProduct ==0x00da)){
-                printf(" !XMOS device found! ");
+        if((desc.idVendor == VID ) && (desc.idProduct == PID)){
+                info.append(" XMOS device found ");
                 XMOSdev = dev;
                 printf("bMaxPacketSize0 = %d" , desc.bMaxPacketSize0);
         }
         if((desc.idVendor == 0x20b1) && (desc.idProduct ==0xf7d1))
-                printf(" !XTAG device found! ");
+                info.append(" XTAG2 device found ");
 
         r = libusb_get_port_numbers(dev, path, sizeof(path));
         if (r > 0) {
-            printf(" path: %d", path[0]);
+            info.append(QString().sprintf(" path: %d", path[0]));
             for (j = 1; j < r; j++)
-                printf(".%d", path[j]);
+                info.append(QString().sprintf(".%d", path[j]));
            }
-        printf("\n");
+    qInfo().noquote()<< info;
     }
-    printf("\n");
+    if(XMOSdev == nullptr)
+        qCritical("No XMOS device found with correct VID and PID");
     return XMOSdev;
  }
 

@@ -1,10 +1,12 @@
 #include "usbbulk.h"
 #include <QDebug>
 #include <QtCore/qglobal.h>
+#include <QMessageBox>
 
 
 USBbulk::USBbulk(MainWindow* w){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
+    connect(this, &USBbulk::sendWarning  , w , &MainWindow::show_Warning);
 
     //constructor
 }
@@ -15,9 +17,9 @@ void USBbulk::run(){
     //libusb_set_debug(NULL , 1);
     //Returns a list of USB devices currently attached to the system.
     qDebug()<< "Number of connected USB devices:" << libusb_get_device_list(nullptr, &list);
-    libusb_device *XMOSdev = print_devs(list);
+    libusb_device *XMOSdev = print_devs(list , VID , PID);
 
-    if(XMOSdev != NULL){
+    if(XMOSdev != nullptr){
         err = libusb_open(XMOSdev, &handle);
         switch(err){
         case 0:
@@ -37,8 +39,11 @@ void USBbulk::run(){
            break;
         }
     }else{
-      qDebug() << "XMOS USB device not found";
-      libusb_free_device_list(list, 1);
+      libusb_exit(NULL);
+      emit sendWarning(QString("No XMOS USB device found with correct Vendor ID and Product ID\n"
+                       "Check that your XMOS device has enumerated correctly and that you are running a compatible version of the XMOS code\n"
+                       "This code version will only connect to VID = 0x%1 | PID = 0x%2\n").arg(VID,0,16).arg(PID,0,16));
+      return;
     }
      libusb_free_device_list(list, 1);
      libusb_claim_interface(handle , 0);

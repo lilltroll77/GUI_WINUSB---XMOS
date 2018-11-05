@@ -26,6 +26,7 @@ public:
 
 signals:
     void dataAvailable(struct USBmem_t **usb);
+    void sendWarning(QString str);
 
 private:
     void run();
@@ -40,6 +41,8 @@ private:
     int do_exit=0;
     tx_t stream={streamIN, true};
     MainWindow* mainWindow;
+    const int VID=0x20b1;
+    const int PID=0x00da;
     //struct USBmem_t* buffer;
 
 };
