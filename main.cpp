@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     USBbulk usb(w);
     QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
-    usb.start();
+    usb.start(QThread::TimeCriticalPriority);
     return a.exec();
 }
 

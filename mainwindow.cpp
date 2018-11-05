@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent) :
     axisX->setLabelFormat("%.0f");
     axisY->setLabelFormat("%.0f");
     axisX->setRange(0 , round(FFT_PLOT_POINTS*(fs/FFT_LEN)));
-    axisY->setRange(-20.0 , 80.0);
+    axisY->setRange(-40.0 , 80.0);
     axisX->setTitleText("Frequency [Hz]");
     axisY->setTitleText("Level [dB]");
 
@@ -101,7 +101,7 @@ MainWindow::MainWindow(QWidget *parent) :
     axisX->setMinorTickCount(3);
     axisX->setTickCount(10);
     axisX->applyNiceNumbers();
-    axisY->setTickCount(6);
+    axisY->setTickCount(7);
     axisY->setMinorTickCount(3);
     axisY->setTickType(QValueAxis::TickType::TicksFixed);
 
