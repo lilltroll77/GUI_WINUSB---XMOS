@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
-    FFT_chart->setTitle(QString("FFTtitle"));
+    FFT_chart->setTitle(QString("FFT"));
     for(int i=IA; i<=Torque ; i++){
         QPointF pnt;
         list[i].reserve(128/DECIMATE*ABUFFERS);
@@ -55,9 +55,14 @@ MainWindow::MainWindow(QWidget *parent) :
         PI_chart ->addSeries(&series[i]);
     }
 
-    FFTseries.setName("FFT");
+    FFTseries.setName("I phase A");
+    QPen pen = FFTseries.pen();
+    pen.setWidth(1);
+    pen.setColor(series[IA].color());
+    FFTseries.setPen(pen);
+    qreal fs=1000/dt;
     for(int i=0; i< 256 ; i++)
-        FFTseries.append(i,0);
+        FFTseries.append(fs*i/FFT_LEN , 0);
     FFT_chart->addSeries(&FFTseries);
 
     I_chart ->createDefaultAxes();
@@ -72,8 +77,11 @@ MainWindow::MainWindow(QWidget *parent) :
     PI_chart-> axisX()->setRange(0 , 360);
 
     FFT_chart->createDefaultAxes();
+    FFT_chart->axisX()->setRange(0 , 250);
     FFT_chart->axisY()->setRange(-25 , 75);
+    FFT_chart->axisX()->setTitleText("Frequency [Hz]");
     FFT_chart->axisY()->setTitleText("Level [dB]");
+
 
      IView ->setRenderHint(QPainter:: Antialiasing);
      PIView->setRenderHint(QPainter:: Antialiasing);

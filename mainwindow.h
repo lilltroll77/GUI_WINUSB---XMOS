@@ -69,6 +69,7 @@ private:
     float x[FFT_LEN];
     int writeX=0;
     ffft::FFTRealFixLen <FFT_POW> fft_object;
+    int firstFFT=1;
 
 
 
