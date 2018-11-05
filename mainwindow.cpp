@@ -59,9 +59,9 @@ MainWindow::MainWindow(QWidget *parent) :
     FFTseries[FFT_IC].setName("I phase C");
     QPen pen = FFTseries[FFT_IA].pen();
     pen.setWidth(1);
-    pen.setColor(series[FFT_IA].color());
+    pen.setColor(series[IA].color());
     FFTseries[FFT_IA].setPen(pen);
-    pen.setColor(series[FFT_IC].color());
+    pen.setColor(series[IC].color());
     FFTseries[FFT_IC].setPen(pen);
     qreal fs=1000/dt;
     for(int i=0; i< FFT_PLOT_POINTS ; i++){
