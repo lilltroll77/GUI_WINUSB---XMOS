@@ -1,5 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
+
 #include <QChart>
 #include <QLineSeries>
 #include <QMainWindow>
@@ -9,26 +10,24 @@
 #include <QLayout>
 #include "data_struct.h"
 #include "ffft/FFTRealFixLen.h"
-
-#define DECIMATE 16 /*Do not draw several lines per pixel*/
-#define FFT_POW 16
-#define FFT_LEN (1<<FFT_POW)
+//#include "usbbulk.h"
+#include "fftworker.h"
+/*Do not draw several lines per pixel*/
+#define DECIMATE 16
+#define ABUFFERS 64
+#define BUFFERS 2
+#define FFT_PLOT_POINTS 512
+#define FFT_N 2 /*Number of different FFTs*/
 
 QT_CHARTS_USE_NAMESPACE
 enum plots_e{IA , IB , IC, Flux , Torque , SetFlux , SetTorque};
+enum FFT_e{FFT_IA , FFT_IC};
 
 struct scale_t{
     const qreal QE = 360.0/8192.0;
     const qreal Current = 1.0/8000.0/DECIMATE;
     const qreal Flux = 1.0/8192.0/DECIMATE;
     const qreal Torque = 1.0/8192.0/DECIMATE;
-};
-
-struct F_t{
-    float DC;
-    float Re[FFT_LEN/2-1];
-    float NQ;
-    float Im[FFT_LEN/2-1];
 };
 
 namespace Ui {
@@ -43,18 +42,23 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+signals:
+    void restart_stream(void);
+
 public slots:
     void update_data(USBmem_t **usb);
+    void update_FFT(int index);
     void show_Warning(QString str);
 
 
 private:
+    void reset_states(void);
     Ui::MainWindow *ui;
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
     QList<QPointF> list[len-2];
     QLineSeries series[len];
-    QLineSeries FFTseries;
+    QLineSeries FFTseries[2];
     QChartView *IView;
     QChartView *PIView;
     QChartView *FFTView;
@@ -66,14 +70,17 @@ private:
     QGroupBox *box;
     scale_t scale;
     int updates=0;
-    float x[FFT_LEN];
-    int writeX=0;
-    ffft::FFTRealFixLen <FFT_POW> fft_object;
-    int firstFFT=1;
+    int writeCopy=0;
+    int fft_pos=0;
+    struct USBmem_t copy[ABUFFERS];
+    struct f_t fft_data[2][FFT_N];
+    int FFT_wr_buff=0;
+    int FFT_rd_buff=0;
 
-
-
-
+    QThread* fft_thread[FFT_N];
+    FFTworker* fft[FFT_N];
+    F_t FFT[FFT_N];
+    QList<QPointF> freq;
 };
 
 #endif // MAINWINDOW_H

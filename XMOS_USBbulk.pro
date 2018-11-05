@@ -27,17 +27,19 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    usb_helper_functions.cpp \
-    usbbulk.cpp
+        usb_helper_functions.cpp \
+        usbbulk.cpp \
+        fftworker.cpp
 
 HEADERS += \
         mainwindow.h \
         libusb.h \
-    usb_helper_functions.h \
-    data_struct.h \
-    usbbulk.h \
-    ffft/FFTReal.h \
-    ffft/FFTRealFixLen.h
+        usb_helper_functions.h \
+        data_struct.h \
+        usbbulk.h \
+        ffft/FFTReal.h \
+        ffft/FFTRealFixLen.h \
+        fftworker.h
 
 FORMS += \
         mainwindow.ui

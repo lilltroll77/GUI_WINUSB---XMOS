@@ -1,14 +1,11 @@
-#include "usbbulk.h"
 #include <QDebug>
 #include <QtCore/qglobal.h>
 #include <QMessageBox>
-
+#include "usbbulk.h"
 
 USBbulk::USBbulk(MainWindow* w){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
     connect(this, &USBbulk::sendWarning  , w , &MainWindow::show_Warning);
-
-    //constructor
 }
 
 void USBbulk::run(){
@@ -50,14 +47,13 @@ void USBbulk::run(){
      int speed = libusb_get_device_speed(XMOSdev);
      int pkgSize= libusb_get_max_packet_size(XMOSdev , XMOS_BULK_EP_IN);
 
-
+    stop_stream();
     for(int buff=0; buff<BUFFERS ; buff++){
        In_transfer[buff]  = libusb_alloc_transfer(0);
        libusb_fill_bulk_transfer(       In_transfer[buff], handle, XMOS_BULK_EP_IN ,(unsigned char*) &mem[buff], sizeof(mem[buff]), &USBbulk::callback  , nullptr , 0);
        libusb_submit_transfer(          In_transfer[buff]);
     }
-    struct tx_t stream={streamIN, true};
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &stream, sizeof stream, NULL , 0);
+    start_stream();
 
     while(!do_exit){
         //int completed;
@@ -69,19 +65,33 @@ void USBbulk::run(){
     }
 }
 
+void USBbulk::restart_stream(){
+    stop_stream();
+    for(int buff=0; buff < BUFFERS ; buff++)
+        libusb_cancel_transfer(In_transfer[buff]);
+    wait(500);
+    for(int buff=0; buff < BUFFERS ; buff++){
+        libusb_submit_transfer(In_transfer[buff]);
+    }
+    block=0;
+    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamON, sizeof streamON, NULL , 0);
+}
 
 void USBbulk::callback(struct libusb_transfer *transfer){
     libusb_submit_transfer(transfer);
     //static struct USBmem_t* buffer = (struct USBmem_t*) transfer->buffer;
 }
-
+void USBbulk::start_stream(){
+    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamON, sizeof streamON, NULL , 0);
+    block=0;
+}
+void USBbulk::stop_stream(){
+    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamOFF, sizeof streamOFF, NULL , 0);
+}
 
 USBbulk::~USBbulk()
 {
-    stream.stream=false;
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &stream, sizeof stream, NULL , 0);
-    for(int buff=0; buff < BUFFERS ; buff++)
-        libusb_cancel_transfer(In_transfer[buff]);
+    stop_stream();
     libusb_release_interface(handle , 0);
     if (handle)
         libusb_close( handle);

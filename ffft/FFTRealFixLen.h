@@ -13,8 +13,6 @@ http://sam.zoy.org/wtfpl/COPYING for more details.
 
 *Tab=3***********************************************************************/
 
-
-
 #if ! defined (ffft_FFTRealFixLen_HEADER_INCLUDED)
 #define	ffft_FFTRealFixLen_HEADER_INCLUDED
 
@@ -41,8 +39,8 @@ namespace ffft
 
 template <int LL2>
 class FFTRealFixLen
-{
-	typedef	int	CompileTimeCheck1 [(LL2 >=  0) ? 1 : -1];
+{	
+    typedef	int	CompileTimeCheck1 [(LL2 >=  0) ? 1 : -1];
 	typedef	int	CompileTimeCheck2 [(LL2 <= 30) ? 1 : -1];
 
 /*\\\ PUBLIC \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/

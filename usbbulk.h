@@ -1,15 +1,13 @@
 #ifndef USBBULK_H
 #define USBBULK_H
+#include <QObject>
+#include <QThread>
 #include "data_struct.h"
 #include "libusb.h"
 #include "usb_helper_functions.h"
 #include "mainwindow.h"
-#include <QObject>
 
-#include <QThread>
 
-#define ABUFFERS 64
-#define BUFFERS 2
 
 enum message_e{streamIN};
 
@@ -28,6 +26,12 @@ signals:
     void dataAvailable(struct USBmem_t **usb);
     void sendWarning(QString str);
 
+public slots:
+     void restart_stream(void);
+     void start_stream(void);
+     void stop_stream(void);
+
+
 private:
     void run();
     static void callback(struct libusb_transfer *transfer);
@@ -39,7 +43,8 @@ private:
     int block=0;
     unsigned packets=0;
     int do_exit=0;
-    tx_t stream={streamIN, true};
+    tx_t streamON={streamIN, true};
+    tx_t streamOFF={streamIN, false};
     MainWindow* mainWindow;
     const int VID=0x20b1;
     const int PID=0x00da;

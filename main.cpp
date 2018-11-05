@@ -1,24 +1,14 @@
-#include "mainwindow.h"
 #include <QApplication>
-#include <QDebug>
-#include "usbbulk.h"
-#include <QThread>
-#include <QTimer>
-#include <QTime>
-#include <QCoreApplication>
-#include <QtCore/qglobal.h>
-#include <QObject>
+#include "mainwindow.h"
 #include "data_struct.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <qapplication.h>
-#include <QTextStream>
+#include "usbbulk.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow* w = new MainWindow();
     USBbulk usb(w);
+    QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
     usb.start();
     return a.exec();
