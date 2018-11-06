@@ -2,6 +2,7 @@
 #define USBBULK_H
 #include <QObject>
 #include <QThread>
+#include <QQueue>
 #include "data_struct.h"
 #include "libusb.h"
 #include "usb_helper_functions.h"
@@ -19,11 +20,11 @@ struct tx_t{
 class USBbulk : public QThread {
     Q_OBJECT
 public:
-    USBbulk(MainWindow* w);
+    USBbulk(MainWindow* w, QQueue<union block_t> *fifo_ptr);
     ~USBbulk();
 
 signals:
-    void dataAvailable(struct USBmem_t **usb);
+    void dataAvailable();
     void sendWarning(QString str);
 
 public slots:
@@ -49,6 +50,10 @@ private:
     const int VID=0x20b1;
     const int PID=0x00da;
     //struct USBmem_t* buffer;
+    const quint64 pi=3141592543358979324ull;
+    QQueue<union block_t>* fifo;
+
+
 
 };
 

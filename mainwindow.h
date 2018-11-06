@@ -21,7 +21,7 @@
 
 QT_CHARTS_USE_NAMESPACE
 enum plots_e{IA , IB , IC, Flux , Torque , SetFlux , SetTorque};
-enum FFT_e{FFT_IA , FFT_IC};
+enum FFT_e{FFT_IA , FFT_IC , OFF=-1};
 
 struct scale_t{
     const qreal QE = 360.0/8192.0;
@@ -39,19 +39,20 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent = nullptr);
     ~MainWindow();
 
 signals:
     void restart_stream(void);
 
 public slots:
-    void update_data(USBmem_t **usb);
+    void update_data();
     void update_FFT(int index);
     void show_Warning(QString str);
 
 
 private:
+    void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
     void reset_states(void);
     Ui::MainWindow *ui;
     static const int len = 7;
@@ -70,17 +71,17 @@ private:
     QGroupBox *box;
     scale_t scale;
     int updates=0;
+    int listIndex[len];
     int writeCopy=0;
-    int fft_pos=0;
-    struct USBmem_t copy[ABUFFERS];
-    struct f_t fft_data[2][FFT_N];
+    int fft_pos[FFT_N]={0};
+     struct f_t fft_data[2][FFT_N];
     int FFT_wr_buff=0;
     int FFT_rd_buff=0;
-
     QThread* fft_thread[FFT_N];
     FFTworker* fft[FFT_N];
     F_t FFT[FFT_N];
     QList<QPointF> freq;
+    QQueue<union block_t>* fifo;
 };
 
 #endif // MAINWINDOW_H

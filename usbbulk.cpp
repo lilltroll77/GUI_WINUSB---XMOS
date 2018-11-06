@@ -3,9 +3,12 @@
 #include <QMessageBox>
 #include "usbbulk.h"
 
-USBbulk::USBbulk(MainWindow* w){
+static int last_actual_length;
+
+USBbulk::USBbulk(MainWindow* w , QQueue<union block_t>* fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
     connect(this, &USBbulk::sendWarning  , w , &MainWindow::show_Warning);
+    fifo= fifo_ptr;
 }
 
 void USBbulk::run(){
@@ -48,20 +51,48 @@ void USBbulk::run(){
      int pkgSize= libusb_get_max_packet_size(XMOSdev , XMOS_BULK_EP_IN);
 
     stop_stream();
+    wait(100);
     for(int buff=0; buff<BUFFERS ; buff++){
        In_transfer[buff]  = libusb_alloc_transfer(0);
        libusb_fill_bulk_transfer(       In_transfer[buff], handle, XMOS_BULK_EP_IN ,(unsigned char*) &mem[buff], sizeof(mem[buff]), &USBbulk::callback  , nullptr , 0);
        libusb_submit_transfer(          In_transfer[buff]);
     }
     start_stream();
-
+    unsigned syncPnt=0;
     while(!do_exit){
         //int completed;
+        int resync=0;
         libusb_handle_events_completed(NULL , NULL);
-        //if(!completed)
-        emit dataAvailable((struct USBmem_t**) mem[block]);
+        union block_t* mem_block = (union block_t*) &mem[block];
+
+        for(int j=0; j< (8*ABUFFERS) ; j++){
+            if ( (j % 8)== syncPnt && mem_block->lowSpeed.checknumber != pi ){ // every 8 block should have the check number
+                syncPnt = (syncPnt+1)&7;
+                if(!resync){
+                    resync=1;
+                    qDebug() << "Resyncing";
+                }
+            }
+            else{
+                fifo->enqueue(*mem_block);
+                if(resync){
+                    resync=0;
+                    qDebug() << "Synced";
+                }
+            }
+        mem_block++;
+        }
+        while(fifo->count() >= (48*ABUFFERS)){
+            for(int i=0; i<(8*ABUFFERS) ;i++)
+                fifo->removeFirst();
+            qDebug() << "Removing" << 8*ABUFFERS*sizeof(union block_t) << "bytes in FIFO to prevent overfill";
+        }
+
+        if( fifo->count() >= (8*ABUFFERS)){ // Full data struct
+            emit dataAvailable();
+        }
+
         block = !block;
-        //qDebug()<<'.';
     }
 }
 
@@ -79,6 +110,7 @@ void USBbulk::restart_stream(){
 
 void USBbulk::callback(struct libusb_transfer *transfer){
     libusb_submit_transfer(transfer);
+    last_actual_length = transfer->actual_length;
     //static struct USBmem_t* buffer = (struct USBmem_t*) transfer->buffer;
 }
 void USBbulk::start_stream(){

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <QMessageBox>
 #include <QThread>
+#include <QQueue>
 #include <QValueAxis>
 #include "data_struct.h"
 #include "mainwindow.h"
@@ -9,10 +10,11 @@
 
 
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    fifo = fifo_ptr;
     freq.reserve(FFT_PLOT_POINTS);
     for(int i=0; i<FFT_N ; i++){
         fft_thread[i] = new QThread();
@@ -115,8 +117,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //FFT_chart->createDefaultAxes();
 
-     IView ->setRenderHint(QPainter:: Antialiasing);
-     PIView->setRenderHint(QPainter:: Antialiasing);
+     //IView ->setRenderHint(QPainter:: Antialiasing);
+     //PIView->setRenderHint(QPainter:: Antialiasing);
      FFTView ->setRenderHint(QPainter:: Antialiasing);
 
      layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
@@ -145,66 +147,73 @@ void MainWindow::update_FFT(int index){
 }
 
 void MainWindow::reset_states(){
-    fft_pos=0;
+    for(int i=0; i < FFT_N ; i++)
+        fft_pos[i]=0;
     FFT_wr_buff=0;
     FFT_rd_buff=0;
     updates=0;
     writeCopy=0;
-    fft_pos=0;
     FFT_wr_buff=0;
     FFT_rd_buff=0;
 }
 
-void MainWindow::update_data(struct USBmem_t** mem){
-    memcpy(copy , mem , sizeof(copy)); //Faster with local cache copy ?
-        int listIndex=0;
-        for(int j=0; j<ABUFFERS ; j++){
-            //unsigned check = reinterpret_cast<struct USBmem_t*>((char*) mem + sizeof(struct USBmem_t)*j )->checknumber;
-            //struct hispeed_vector_t* fast = &reinterpret_cast<struct USBmem_t*>((char*) mem + sizeof(struct USBmem_t)*j )->fast;
-            //struct hispeed_vector_t* fast = &copy[j].fast;
-            if(copy[j].checknumber != 3141592543){
-                qDebug()<< "Packet check error, restarting stream";
-                emit restart_stream();
-                reset_states();
+void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
+    union block_t block = fifo->dequeue();
+    int readPos = 0;
+    if(parseFFT){
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int sum=0;
+            for( int d=0; d<DECIMATE ; d++ ){
+                qint32 val = block.samples[readPos++];
+                sum += val;
+                fft_data[fft_plot][FFT_wr_buff].sample[fft_pos[fft_plot]++] = val;
             }
-            else{
-                int readPos = 0;
-                for(int i=0; i<(128/DECIMATE) ; i++){
-                    int IAsum=0 , ICsum=0 , FluxSum=0 , TorqueSum=0;
-                    for( int d=0; d<DECIMATE ; d++ ){
-                        qint32 ia = copy[j].fast.IA[readPos];
-                        IAsum += ia;
-                        fft_data[FFT_IA][FFT_wr_buff].sample[fft_pos] = ia;
-                        qint32 ic = copy[j].fast.IC[readPos];
-                        ICsum += ic;
-                        fft_data[FFT_IC][FFT_wr_buff].sample[fft_pos] = ic;
-                        FluxSum += copy[j].fast.Flux[readPos];
-                        TorqueSum += copy[j].fast.Torque[readPos];
-                        readPos++;
-                        fft_pos++;
-                    }
-                    list[IA][listIndex].setY(IAsum*scale.Current);
-                    list[IC][listIndex].setY(ICsum*scale.Current);
-                    list[IB][listIndex].setY( - list[IA][listIndex].y() - list[IC][listIndex].y()  );
-                    list[Flux][listIndex].setY(FluxSum*scale.Flux);
-                    list[Torque][listIndex].setY(TorqueSum*scale.Torque);
-                    listIndex++;
-                }
-            }
-
+            list[plot][index++].setY(sum*scale);
         }
+    }
+    else{
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int sum=0;
+            for( int d=0; d<DECIMATE ; d++ ){
+                sum += block.samples[readPos++];
+            }
+            list[plot][index++].setY(sum*scale);
+        }
+    }
+}
+
+
+void MainWindow::update_data(){
+   while(fifo->count() >= 8*ABUFFERS){
+        for(int i=0; i<len ; i++)
+            listIndex[i]=0;
+
+        for(int j=0; j<ABUFFERS ; j++){
+            fifo->removeFirst();//low speed
+            parse(IA , FFT_IA , listIndex[IA] , true , scale.Current);
+            parse(IC , FFT_IC , listIndex[IC] , true , scale.Current);
+            fifo->removeFirst();//QE
+            parse(Torque , OFF, listIndex[Torque] , false , scale.Torque);
+            parse(Flux , OFF, listIndex[Flux] , false , scale.Flux);
+            fifo->removeFirst();//U
+            fifo->removeFirst();//ang
+        }
+        for(int i=0 ; i<(8192/DECIMATE) ; i++)
+            list[IB][i].setY(-list[IA][i].y() - list[IC][i].y() );
+
         series[IA].replace(list[IA]);
         series[IB].replace(list[IB]);
         series[IC].replace(list[IC]);
         series[Torque].replace(list[Torque]);
         series[Flux].replace(list[Flux]);
-
-        if(fft_pos >= FFT_LEN ){
-            fft_pos=0;
+        if(fft_pos[0] >= FFT_LEN ){
+            for(int i=0; i < FFT_N ; i++)
+                fft_pos[i]=0;
             FFT_wr_buff=!FFT_wr_buff;
             for(int i=0; i< FFT_N ; i++)
                 fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , Level , i);
         }
+    }//while
 }
 
 void MainWindow::show_Warning(QString str){

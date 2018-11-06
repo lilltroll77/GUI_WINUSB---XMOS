@@ -2,8 +2,10 @@
 #define DATA_STRUCT_H
 #include <QtGlobal>
 #define PKG_SIZE 512 /*In bytes*/
+#define CodeVERSION 1
 //sizeof(struct DSPmem_t)
 //sizeof(struct DSPmem_t)
+
 
 struct lowspeed_t{
     qint32 temp;
@@ -17,9 +19,6 @@ struct lowspeed_t{
     qint32 reserved8;
     qint32 reserved9;
     qint32 reserved10;
-    qint32 reserved11;
-    qint32 reserved12;
-    qint32 reserved13;
 };
 
 
@@ -33,6 +32,17 @@ struct midspeed_vecotr_t{
     qint32 reserved4[PKG_SIZE/32];
 };
 
+struct blockC_t{
+   quint64 checknumber;
+   quint32 version; //3
+   quint32 index;  //4
+   qint32 samples[PKG_SIZE/4-4];
+};
+
+union block_t{
+    blockC_t lowSpeed;
+    qint32 samples[PKG_SIZE/4];
+};
 
 struct hispeed_vector_t{
     qint32 IA[PKG_SIZE/4];
@@ -45,9 +55,11 @@ struct hispeed_vector_t{
 };
 
 struct USBmem_t{
-    quint32 checknumber;
-    quint32 index;
-    struct lowspeed_t slow;
+    quint64 checknumber; //2
+    quint32 version; //3
+    quint32 index;  //4
+    float temp; //5
+    quint32 reserved[16-5];
     struct midspeed_vecotr_t mid;
     struct hispeed_vector_t fast;
 };
