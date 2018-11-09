@@ -49,6 +49,10 @@ GaugeWindow::GaugeWindow(QWidget *parent) :
  */
 }
 
+void GaugeWindow::setShaftSpeed(float rpm){
+    tachometerGauge->setSpeed(rpm);
+}
+
 void GaugeWindow::setShaftAngle(float angle){
     angleGauge->setAngle(angle);
 }

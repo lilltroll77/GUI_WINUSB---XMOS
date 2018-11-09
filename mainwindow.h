@@ -56,11 +56,14 @@ public slots:
 private:
     float filter(qreal x , enum plots_e plot );
     void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
+    void parse_angle();
     void reset_states(void);
     Ui::MainWindow *ui;
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
     QList<QPointF> list[len-2];
+    float angle[8192];
+    int angle_pos=0;
     QLineSeries series[len];
     QLineSeries FFTseries[2];
     QChartView *IView;
@@ -87,7 +90,7 @@ private:
     QQueue<union block_t>* fifo;
     GaugeWindow* gaugeWindow;
     struct I_t I[3]={0};
-    qreal Xold[3]={0} , Yold[3]={0};
+    qreal Xold[3]={0} , Yold[2]={0};
 };
 
 #endif // MAINWINDOW_H

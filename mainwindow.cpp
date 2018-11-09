@@ -167,6 +167,13 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
     return (float)y;
 }
 
+void MainWindow::parse_angle(){
+    union block_t block = fifo->dequeue();
+    for(int i=0; i<128 ; i++)
+        angle[angle_pos++] = block.samples[i]*scale.QE;
+    angle_pos &=8191;
+}
+
 void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
     union block_t block = fifo->dequeue();
     int readPos = 0;
@@ -211,7 +218,7 @@ void MainWindow::update_data(){
             fifo->removeFirst();//low speed
             parse(IA , FFT_IA , listIndex[IA] , true , scale.Current);
             parse(IC , FFT_IC , listIndex[IC] , true , scale.Current);
-            fifo->removeFirst();//QE
+            parse_angle();
             parse(Torque , OFF, listIndex[Torque] , false , scale.Torque);
             parse(Flux , OFF, listIndex[Flux] , false , scale.Flux);
             fifo->removeFirst();//U
@@ -235,6 +242,9 @@ void MainWindow::update_data(){
         series[Torque].replace(list[Torque]);
         series[Flux].replace(list[Flux]);
         gaugeWindow->setcurrentGauge(I);
+        float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
+        //qDebug()<<rpm;
+        gaugeWindow->setShaftSpeed(rpm);
         if(fft_pos[0] >= FFT_LEN ){
             for(int i=0; i < FFT_N ; i++)
                 fft_pos[i]=0;
