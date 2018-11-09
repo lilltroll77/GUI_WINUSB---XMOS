@@ -57,6 +57,7 @@ private:
     float filter(qreal x , enum plots_e plot );
     void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
     void parse_angle();
+    void parse_lowspeed();
     void reset_states(void);
     Ui::MainWindow *ui;
     static const int len = 7;

@@ -8,7 +8,7 @@
 
 
 struct lowspeed_t{
-    qint32 temp;
+    float temp;
     qint32 reserved1; // Replace with real signal
     qint32 reserved2;
     qint32 reserved3;
@@ -36,7 +36,7 @@ struct blockC_t{
    quint64 checknumber;
    quint32 version; //3
    quint32 index;  //4
-   qint32 samples[PKG_SIZE/4-4];
+   struct lowspeed_t lowspeed;
 };
 
 union block_t{

@@ -21,6 +21,7 @@ public slots:
     void setcurrentGauge(I_t I[]);
     void setShaftAngle(float angle);
     void setShaftSpeed(float rpm);
+    void setTemp(float temp);
 
 private:
     QGridLayout* top_layout;

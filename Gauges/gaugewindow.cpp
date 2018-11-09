@@ -57,6 +57,11 @@ void GaugeWindow::setShaftAngle(float angle){
     angleGauge->setAngle(angle);
 }
 
+void GaugeWindow::setTemp(float temp){
+    tempGauge->setTemp(temp);
+}
+
+
 void GaugeWindow::setcurrentGauge(struct I_t I[]){
     I_t Imax={0,0};
     float Ia=I[IA].peak;

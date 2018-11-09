@@ -174,6 +174,13 @@ void MainWindow::parse_angle(){
     angle_pos &=8191;
 }
 
+void::MainWindow::parse_lowspeed(){
+    union block_t block = fifo->dequeue();
+    float temp = block.lowSpeed.lowspeed.temp;
+    //qDebug()<<temp;
+    gaugeWindow->setTemp(temp);
+}
+
 void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
     union block_t block = fifo->dequeue();
     int readPos = 0;
@@ -215,7 +222,7 @@ void MainWindow::update_data(){
             listIndex[i]=0;
 
         for(int j=0; j<ABUFFERS ; j++){
-            fifo->removeFirst();//low speed
+            parse_lowspeed();
             parse(IA , FFT_IA , listIndex[IA] , true , scale.Current);
             parse(IC , FFT_IC , listIndex[IC] , true , scale.Current);
             parse_angle();
