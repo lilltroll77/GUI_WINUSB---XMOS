@@ -36,6 +36,11 @@ signals:
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
      float result[FFT_LEN];
+     static const int scale_points=512;
+     float f_table[scale_points];
+     float logscale[scale_points];
+     float linscale[scale_points+1];
+     const float fs=5E8f/26.0f/64.0f;
 
 };
 

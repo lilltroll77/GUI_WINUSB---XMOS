@@ -29,7 +29,14 @@ SOURCES += \
         mainwindow.cpp \
         usb_helper_functions.cpp \
         usbbulk.cpp \
-        fftworker.cpp
+        fftworker.cpp \
+        Gauges/currentgague.cpp \
+        Gauges/gaugewindow.cpp \
+        Gauges/qcgaugewidget.cpp \
+        Gauges/qegauge.cpp \
+        Gauges/tachometer.cpp \
+        Gauges/tempgauge.cpp
+
 
 HEADERS += \
         mainwindow.h \
@@ -39,7 +46,14 @@ HEADERS += \
         usbbulk.h \
         ffft/FFTReal.h \
         ffft/FFTRealFixLen.h \
-        fftworker.h
+        fftworker.h \
+        Gauges/currentgague.h \
+        Gauges/gaugewindow.h \
+        Gauges/qcgaugewidget.h \
+        Gauges/qegauge.h \
+        Gauges/tachometer.h \
+        Gauges/tempgauge.h
+
 
 FORMS += \
         mainwindow.ui

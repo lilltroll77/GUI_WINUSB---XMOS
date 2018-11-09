@@ -12,6 +12,8 @@
 #include "ffft/FFTRealFixLen.h"
 //#include "usbbulk.h"
 #include "fftworker.h"
+#include "Gauges/gaugewindow.h"
+
 /*Do not draw several lines per pixel*/
 #define DECIMATE 16
 #define ABUFFERS 64
@@ -52,6 +54,7 @@ public slots:
 
 
 private:
+    float filter(qreal x , enum plots_e plot );
     void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
     void reset_states(void);
     Ui::MainWindow *ui;
@@ -82,6 +85,9 @@ private:
     F_t FFT[FFT_N];
     QList<QPointF> freq;
     QQueue<union block_t>* fifo;
+    GaugeWindow* gaugeWindow;
+    struct I_t I[3]={0};
+    qreal Xold[3]={0} , Yold[3]={0};
 };
 
 #endif // MAINWINDOW_H

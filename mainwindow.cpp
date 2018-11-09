@@ -4,16 +4,17 @@
 #include <QThread>
 #include <QQueue>
 #include <QValueAxis>
+#include <QBoxLayout>
 #include "data_struct.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
 
 
 MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
     freq.reserve(FFT_PLOT_POINTS);
     for(int i=0; i<FFT_N ; i++){
@@ -157,6 +158,15 @@ void MainWindow::reset_states(){
     FFT_rd_buff=0;
 }
 
+float MainWindow::filter(qreal x , enum plots_e plot ){
+    qreal y;
+    const qreal B=1e-3;
+    y = B * (x + Xold[plot]) + Yold[plot]*(1-2*B);
+    Xold[plot] = x;
+    Yold[plot] = y;
+    return (float)y;
+}
+
 void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
     union block_t block = fifo->dequeue();
     int readPos = 0;
@@ -168,7 +178,16 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
                 sum += val;
                 fft_data[fft_plot][FFT_wr_buff].sample[fft_pos[fft_plot]++] = val;
             }
-            list[plot][index++].setY(sum*scale);
+            qreal scaled = sum*scale;
+            list[plot][index++].setY(scaled);
+
+            //peak hold
+            I[plot].i = abs(scaled);
+            if(I[plot].i >= I[plot].peak)
+                I[plot].peak = I[plot].i;
+            else
+                I[plot].peak -=2*(dt/1000); //[A/s]
+            I[plot].RMS = filter(scaled*scaled , plot);
         }
     }
     else{
@@ -200,12 +219,22 @@ void MainWindow::update_data(){
         }
         for(int i=0 ; i<(8192/DECIMATE) ; i++)
             list[IB][i].setY(-list[IA][i].y() - list[IC][i].y() );
+        for(int i=0; i<(128/DECIMATE) ; i++){ // A already
+            qreal Ib = list[IA][i].y() + list[IC][i].y();
+            I[IB].RMS = filter(Ib*Ib , IB);
+            float absIb= abs(Ib);
+            if(absIb >  I[IB].peak)
+                I[IB].peak = absIb;
+            else
+                I[IB].peak -=2*(dt/1000);
+        }
 
         series[IA].replace(list[IA]);
         series[IB].replace(list[IB]);
         series[IC].replace(list[IC]);
         series[Torque].replace(list[Torque]);
         series[Flux].replace(list[Flux]);
+        gaugeWindow->setcurrentGauge(I);
         if(fft_pos[0] >= FFT_LEN ){
             for(int i=0; i < FFT_N ; i++)
                 fft_pos[i]=0;
