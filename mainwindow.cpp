@@ -16,7 +16,6 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 {
     gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
-    freq.reserve(FFT_PLOT_POINTS);
     for(int i=0; i<FFT_N ; i++){
         fft_thread[i] = new QThread();
         fft[i] = new FFTworker();
@@ -58,6 +57,12 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
         PI_chart ->addSeries(&series[i]);
     }
 
+    for(int i=0; i<FFT_N ; i++){
+       connect(fft[i] , &FFTworker::resultReady , this ,  &MainWindow::update_FFT );
+       fft_thread[i]->start();
+       fft[i]->calcLogScale(fft_data[i]);
+       }
+
     FFTseries[FFT_IA].setName("I phase A");
     FFTseries[FFT_IC].setName("I phase C");
     QPen pen = FFTseries[FFT_IA].pen();
@@ -68,12 +73,7 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     FFTseries[FFT_IC].setPen(pen);
     qreal fs=1000/dt;
     for(int i=0; i< FFT_PLOT_POINTS ; i++){
-        qreal f = i*(fs/FFT_LEN);
-        FFTseries[0].append(f , 0);
-        QPoint pnt;
-        pnt.setX(f);
-        freq.append(pnt);
-        FFTseries[1].append(f, 0);
+        FFTseries[i].replace(fft_data[i]->loglog);
     }
     FFT_chart->addSeries(&FFTseries[0]);
     FFT_chart->addSeries(&FFTseries[1]);
@@ -132,18 +132,11 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
      this -> setCentralWidget(box);
      this -> setMinimumWidth(1024);
      this -> setMinimumHeight(768);
-     for(int i=0; i<FFT_N ; i++){
-        connect(fft[i] , &FFTworker::resultReady , this ,  &MainWindow::update_FFT );
-        fft_thread[i]->start();
-        }
+
 }
 
 void MainWindow::update_FFT(int index){
-     for(int i=0; i<FFT_PLOT_POINTS ; i++){
-         float dB = FFT[index].binReal[i];
-        freq[i].setY(dB);
-    }
-    FFTseries[index].replace(freq);
+   FFTseries[index].replace(fft_data[index]->loglog);
    FFT_rd_buff = !FFT_rd_buff;
 }
 
@@ -176,9 +169,10 @@ void MainWindow::parse_angle(){
 
 void::MainWindow::parse_lowspeed(){
     union block_t block = fifo->dequeue();
-    float temp = block.lowSpeed.lowspeed.temp;
-    //qDebug()<<temp;
-    gaugeWindow->setTemp(temp);
+    if(temp != block.lowSpeed.lowspeed.temp){
+        temp = block.lowSpeed.lowspeed.temp;
+        gaugeWindow->setTemp(temp);
+    }
 }
 
 void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
@@ -190,7 +184,7 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block.samples[readPos++];
                 sum += val;
-                fft_data[fft_plot][FFT_wr_buff].sample[fft_pos[fft_plot]++] = val;
+                fft_data[fft_plot][FFT_wr_buff].time.samples[fft_pos[fft_plot]++] = val;
             }
             qreal scaled = sum*scale;
             list[plot][index++].setY(scaled);
@@ -256,8 +250,8 @@ void MainWindow::update_data(){
             for(int i=0; i < FFT_N ; i++)
                 fft_pos[i]=0;
             FFT_wr_buff=!FFT_wr_buff;
-            for(int i=0; i< FFT_N ; i++)
-                fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , Level , i);
+            for(int ch=0; ch< FFT_N ; ch++)
+                fft[ch]->calcFFT(&fft_data[ch][FFT_rd_buff], ch);
         }
     }//while
 }

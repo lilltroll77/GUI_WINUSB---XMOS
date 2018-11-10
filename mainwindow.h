@@ -81,17 +81,16 @@ private:
     int listIndex[len];
     int writeCopy=0;
     int fft_pos[FFT_N]={0};
-     struct f_t fft_data[2][FFT_N];
+    struct FFT_t fft_data[2][FFT_N];
     int FFT_wr_buff=0;
     int FFT_rd_buff=0;
     QThread* fft_thread[FFT_N];
     FFTworker* fft[FFT_N];
-    F_t FFT[FFT_N];
-    QList<QPointF> freq;
     QQueue<union block_t>* fifo;
     GaugeWindow* gaugeWindow;
     struct I_t I[3]={0};
     qreal Xold[3]={0} , Yold[2]={0};
+    float temp=0;
 };
 
 #endif // MAINWINDOW_H

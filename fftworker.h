@@ -2,19 +2,28 @@
 #define FFTWORKER_H
 
 #include <QObject>
+#include <QList>
+#include <QPointF>
 #include "ffft/FFTRealFixLen.h"
 #define FFT_POW 18
 #define FFT_LEN (1<<FFT_POW)
+#define LOG_LEN 512
 
-struct F_t{
+struct timedomain_t{
+    float samples[FFT_LEN];
+};
+
+struct freqdomain_t{
     float binDC;
     float binReal[FFT_LEN/2-1];
     float binNyquist;
     float binImag[FFT_LEN/2-1];
 };
 
-struct f_t{
-    float sample[FFT_LEN];
+struct FFT_t{
+    struct timedomain_t time;
+    struct freqdomain_t freq;
+    QList<QPointF> loglog;
 };
 
 enum type_e{Absolute, Level};
@@ -27,7 +36,8 @@ public:
     explicit FFTworker(QObject *parent = nullptr);
 
 public slots:
-    void calcFFT(struct F_t* X, struct f_t* x , enum type_e type , int index);
+    void calcFFT(FFT_t *F , int channel);
+    void calcLogScale(FFT_t *F);
 
 signals:
     void resultReady(int index);
@@ -35,11 +45,7 @@ signals:
 
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
-     float result[FFT_LEN];
-     static const int scale_points=512;
-     float f_table[scale_points];
-     float logscale[scale_points];
-     float linscale[scale_points+1];
+     QVector<int> f_table;
      const float fs=5E8f/26.0f/64.0f;
 
 };
