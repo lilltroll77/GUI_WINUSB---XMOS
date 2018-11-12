@@ -4,10 +4,12 @@
 #include <QThread>
 #include <QQueue>
 #include <QValueAxis>
+#include <QLogValueAxis>
 #include <QBoxLayout>
 #include "data_struct.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "math.h"
 
 
 MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
@@ -16,7 +18,8 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 {
     gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
-    freq.reserve(FFT_PLOT_POINTS);
+
+
     for(int i=0; i<FFT_N ; i++){
         fft_thread[i] = new QThread();
         fft[i] = new FFTworker();
@@ -66,15 +69,9 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     FFTseries[FFT_IA].setPen(pen);
     pen.setColor(series[IC].color());
     FFTseries[FFT_IC].setPen(pen);
-    qreal fs=1000/dt;
-    for(int i=0; i< FFT_PLOT_POINTS ; i++){
-        qreal f = i*(fs/FFT_LEN);
-        FFTseries[0].append(f , 0);
-        QPoint pnt;
-        pnt.setX(f);
-        freq.append(pnt);
-        FFTseries[1].append(f, 0);
-    }
+    calcLogScale();
+    FFTseries[0].append(freq);
+    FFTseries[1].append(freq);
     FFT_chart->addSeries(&FFTseries[0]);
     FFT_chart->addSeries(&FFTseries[1]);
 
@@ -91,21 +88,21 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 
 
 
-    QValueAxis* axisX = new QValueAxis();
+    QLogValueAxis* axisX = new QLogValueAxis();
     QValueAxis* axisY = new QValueAxis();
     axisX->setLabelFormat("%.0f");
     axisY->setLabelFormat("%.0f");
-    axisX->setRange(0 , round(FFT_PLOT_POINTS*(fs/FFT_LEN)));
-    axisY->setRange(-40.0 , 80.0);
+    axisX->setRange(floor(fs/FFT_LEN) , ceil(fs/2));
+    axisY->setRange(-20.0 , 80.0);
+    axisX->setMinorTickCount(8);// 2:9 20:10:90
+    axisY->setTickCount(6); // 20dB
+
+    axisY->setMinorTickCount(3);
+
     axisX->setTitleText("Frequency [Hz]");
     axisY->setTitleText("Level [dB]");
 
-    //axisX->setTickInterval(50.0);
-    axisX->setMinorTickCount(3);
-    axisX->setTickCount(10);
-    axisX->applyNiceNumbers();
-    axisY->setTickCount(7);
-    axisY->setMinorTickCount(3);
+
     axisY->setTickType(QValueAxis::TickType::TicksFixed);
 
 
@@ -138,13 +135,31 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
         }
 }
 
-void MainWindow::update_FFT(int index){
-     for(int i=0; i<FFT_PLOT_POINTS ; i++){
-         float dB = FFT[index].binReal[i];
-        freq[i].setY(dB);
+void MainWindow::update_FFT(int index , enum type_e type){
+    switch(type){
+    case Absolute:
+        break;
+    case Level:
+        for(int i=0; i<FFT_PLOT_POINTS ; i++){
+            float dB = FFT[index].binReal[i];
+            freq[i].setY(dB);
+        }
+        break;
+    case LogLog:
+        ///We cannot draw 2^18 lines in the plot for the FFT, instead a line is drawn from the bin with the minimum value to the bin with the highest value
+        for(int i=v_LUT[0]; i<v_LUT[1]; i++)
+            freq[i].setY(FFT[index].loglogMax[i]);
+        int k=v_LUT[1];
+        for(int i=k; i<freq.size()-1;){
+            if(k>FFT_PLOT_POINTS)
+                qFatal("!FFT_PLOT_POINTS must be increased!");
+            freq[i++].setY(FFT[index].loglogMin[k]);
+            freq[i++].setY(FFT[index].loglogMax[k++]);
+        }
     }
     FFTseries[index].replace(freq);
-   FFT_rd_buff = !FFT_rd_buff;
+    FFT_rd_buff = !FFT_rd_buff;
+
 }
 
 void MainWindow::reset_states(){
@@ -161,6 +176,11 @@ void MainWindow::reset_states(){
 float MainWindow::filter(qreal x , enum plots_e plot ){
     qreal y;
     const qreal B=1e-3;
+    const qreal maxI=32;
+    if(x>maxI)
+        x=maxI;
+    else if(x<-maxI)
+        x=-maxI;
     y = B * (x + Xold[plot]) + Yold[plot]*(1-2*B);
     Xold[plot] = x;
     Yold[plot] = y;
@@ -257,7 +277,7 @@ void MainWindow::update_data(){
                 fft_pos[i]=0;
             FFT_wr_buff=!FFT_wr_buff;
             for(int i=0; i< FFT_N ; i++)
-                fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , Level , i);
+                fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , LogLog , i , v_LUT);
         }
     }//while
 }
@@ -267,6 +287,36 @@ void MainWindow::show_Warning(QString str){
      msgbox->show();
 }
 
+void MainWindow::calcLogScale(){
+    v_LUT.append(1);
+    int sum=0;
+    for(int i=0; v_LUT.last()<=fs ;i++){
+        sum +=FFT_GROUPING<<i;
+        v_LUT.append(sum);
+    }
+    freq.reserve(2*FFT_PLOT_POINTS);
+    for(int v=0;; v++){
+        qreal f1 , f2;
+        int width = (1<<v); // 1 2 4 8 16 ...
+        int start = v_LUT[v];
+        int stop =  v_LUT[v+1];
+        for(int i= start; i< stop ; i+=width){
+            f1 = (qreal) i * (fs/FFT_LEN); // first freq
+            f2 = (qreal)(i+width-1) * (fs/FFT_LEN);
+            QPointF pnt(sqrt(f1*f2) , -100);
+            freq.append(pnt);
+            if(width>1){
+                //pnt.setX(f2);
+                freq.append(pnt);
+            }
+            //qDebug() << pnt;
+            if(f2> fs/2){
+                qDebug()<<"Plotting" << freq.size() << "lines in FFT";
+                return;
+            }
+        }
+    }
+}
 
 MainWindow::~MainWindow()
 {

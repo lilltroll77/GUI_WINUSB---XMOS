@@ -73,11 +73,13 @@ void GaugeWindow::setcurrentGauge(struct I_t I[]){
         Imax.peak = Ic;
     if(Ib > Imax.peak)
         Imax.peak = Ib;
-
+    if(Imax.peak > 32)
+        Imax.peak = 32;
     Ia = sqrtf(I[IA].RMS);
     Ib = sqrtf(I[IB].RMS);
     Ic = sqrtf(I[IC].RMS);
     Imax.RMS = (Ia + Ib + Ic )/3; // Add RMS currents
+
     //qDebug()<< Imax.RMS;
     currentGauge->setCurrent(&Imax);
 };

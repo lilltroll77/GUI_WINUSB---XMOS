@@ -18,7 +18,6 @@
 #define DECIMATE 16
 #define ABUFFERS 64
 #define BUFFERS 2
-#define FFT_PLOT_POINTS 512
 #define FFT_N 2 /*Number of different FFTs*/
 
 QT_CHARTS_USE_NAMESPACE
@@ -42,6 +41,7 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent = nullptr);
+    QVector<int> v_LUT;
     ~MainWindow();
 
 signals:
@@ -49,11 +49,12 @@ signals:
 
 public slots:
     void update_data();
-    void update_FFT(int index);
+    void update_FFT(int index, type_e type);
     void show_Warning(QString str);
 
 
 private:
+    void calcLogScale();
     float filter(qreal x , enum plots_e plot );
     void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
     void parse_angle();
@@ -91,7 +92,7 @@ private:
     QQueue<union block_t>* fifo;
     GaugeWindow* gaugeWindow;
     struct I_t I[3]={0};
-    qreal Xold[3]={0} , Yold[2]={0};
+    qreal Xold[3]={0} , Yold[3]={0};
 };
 
 #endif // MAINWINDOW_H
