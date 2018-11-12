@@ -18,7 +18,7 @@
 #define DECIMATE 16
 #define ABUFFERS 64
 #define BUFFERS 2
-#define FFT_PLOT_POINTS 512
+#define FFT_PLOT_POINTS (1<<17)-2
 #define FFT_N 2 /*Number of different FFTs*/
 
 QT_CHARTS_USE_NAMESPACE
@@ -49,7 +49,7 @@ signals:
 
 public slots:
     void update_data();
-    void update_FFT(int index);
+    void update_FFT(QVector<QPointF> *freq, int channel);
     void show_Warning(QString str);
 
 
@@ -62,8 +62,8 @@ private:
     Ui::MainWindow *ui;
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
-    QList<QPointF> list[len-2];
-    float angle[8192];
+    QVector<QPointF> list[len-2];
+    QVector<float> angle;
     int angle_pos=0;
     QLineSeries series[len];
     QLineSeries FFTseries[2];
@@ -77,21 +77,19 @@ private:
     QBoxLayout* layout;
     QGroupBox *box;
     scale_t scale;
-    int updates=0;
     int listIndex[len];
-    int writeCopy=0;
-    int fft_pos[FFT_N]={0};
-     struct f_t fft_data[2][FFT_N];
     int FFT_wr_buff=0;
     int FFT_rd_buff=0;
     QThread* fft_thread[FFT_N];
     FFTworker* fft[FFT_N];
     F_t FFT[FFT_N];
-    QList<QPointF> freq;
     QQueue<union block_t>* fifo;
     GaugeWindow* gaugeWindow;
-    struct I_t I[3]={0};
-    qreal Xold[3]={0} , Yold[2]={0};
+    QVector<struct I_t> I;
+    qreal Xold[3]={0}, Yold[3]={0};
+    QVector<float> samples[FFT_N];
+    QQueue<QVector<float>> fft_queue[FFT_N];
+
 };
 
 #endif // MAINWINDOW_H

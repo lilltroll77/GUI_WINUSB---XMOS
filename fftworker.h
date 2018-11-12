@@ -3,8 +3,12 @@
 
 #include <QObject>
 #include "ffft/FFTRealFixLen.h"
+#include <QVector>
+#include <QPointF>
 #define FFT_POW 18
 #define FFT_LEN (1<<FFT_POW)
+
+float dB(float a , float b);
 
 struct F_t{
     float binDC;
@@ -15,6 +19,7 @@ struct F_t{
 
 struct f_t{
     float sample[FFT_LEN];
+    int i=0;
 };
 
 enum type_e{Absolute, Level};
@@ -24,23 +29,25 @@ class FFTworker : public QObject
 {
     Q_OBJECT
 public:
-    explicit FFTworker(QObject *parent = nullptr);
+    explicit FFTworker(QObject *parent = nullptr , int ch=0);
+    struct f_t fft_data[2]; // double buffer
 
 public slots:
-    void calcFFT(struct F_t* X, struct f_t* x , enum type_e type , int index);
+    void calcFFT(QQueue<QVector<float> > *fft_queue);
+    void rewind();
+    bool bufferFull();
 
 signals:
-    void resultReady(int index);
+    void resultReady(QVector<QPointF>* freq , int channel);
 
 
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
-     float result[FFT_LEN];
-     static const int scale_points=512;
-     float f_table[scale_points];
-     float logscale[scale_points];
-     float linscale[scale_points+1];
+     struct F_t FFT_Data;
      const float fs=5E8f/26.0f/64.0f;
+     QVector<int> v_LUT={1 , 128 , 384, 896 , 1920 ,  3968 , 8064 , 16256 , 32640 , 65408 , FFT_LEN/2-2};
+     QVector<QPointF> freq;
+     int channel;
 
 };
 

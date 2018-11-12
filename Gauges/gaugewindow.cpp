@@ -62,11 +62,11 @@ void GaugeWindow::setTemp(float temp){
 }
 
 
-void GaugeWindow::setcurrentGauge(struct I_t I[]){
+void GaugeWindow::setcurrentGauge(QVector<struct I_t> I){
     I_t Imax={0,0};
-    float Ia=I[IA].peak;
-    float Ib=I[IB].peak;
-    float Ic=I[IC].peak;
+    float Ia=I.at(IA).peak;
+    float Ib=I.at(IB).peak;
+    float Ic=I.at(IC).peak;
     if(Ia > Ic)
         Imax.peak = Ia;
     else
@@ -74,9 +74,9 @@ void GaugeWindow::setcurrentGauge(struct I_t I[]){
     if(Ib > Imax.peak)
         Imax.peak = Ib;
 
-    Ia = sqrtf(I[IA].RMS);
-    Ib = sqrtf(I[IB].RMS);
-    Ic = sqrtf(I[IC].RMS);
+    Ia = sqrtf(I.at(IA).RMS);
+    Ib = sqrtf(I.at(IB).RMS);
+    Ic = sqrtf(I.at(IC).RMS);
     Imax.RMS = (Ia + Ib + Ic )/3; // Add RMS currents
     //qDebug()<< Imax.RMS;
     currentGauge->setCurrent(&Imax);

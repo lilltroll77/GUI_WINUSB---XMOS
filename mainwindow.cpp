@@ -4,23 +4,26 @@
 #include <QThread>
 #include <QQueue>
 #include <QValueAxis>
+#include <QLogValueAxis>
 #include <QBoxLayout>
 #include "data_struct.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-
 MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    angle.resize(8192);
+    I.resize(3);
     gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
-    freq.reserve(FFT_PLOT_POINTS);
+
     for(int i=0; i<FFT_N ; i++){
         fft_thread[i] = new QThread();
-        fft[i] = new FFTworker();
+        fft[i] = new FFTworker(this , i);
         fft[i]->moveToThread(fft_thread[i]);
+        samples[i].reserve(FFT_LEN);
     }
     I_chart =   new QChart();
     PI_chart =  new QChart();
@@ -32,6 +35,7 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     FFT_chart->setTitle(QString("FFT with size %1").arg(FFT_LEN));
+
     for(int i=IA; i<=Torque ; i++){
         QPointF pnt;
         list[i].reserve(128/DECIMATE*ABUFFERS);
@@ -67,14 +71,7 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     pen.setColor(series[IC].color());
     FFTseries[FFT_IC].setPen(pen);
     qreal fs=1000/dt;
-    for(int i=0; i< FFT_PLOT_POINTS ; i++){
-        qreal f = i*(fs/FFT_LEN);
-        FFTseries[0].append(f , 0);
-        QPoint pnt;
-        pnt.setX(f);
-        freq.append(pnt);
-        FFTseries[1].append(f, 0);
-    }
+
     FFT_chart->addSeries(&FFTseries[0]);
     FFT_chart->addSeries(&FFTseries[1]);
 
@@ -90,20 +87,23 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     PI_chart-> axisX()->setRange(0 , 360);
 
 
-
+#if(1)
+    QLogValueAxis* axisX = new QLogValueAxis();
+#else
     QValueAxis* axisX = new QValueAxis();
+#endif
     QValueAxis* axisY = new QValueAxis();
     axisX->setLabelFormat("%.0f");
     axisY->setLabelFormat("%.0f");
-    axisX->setRange(0 , round(FFT_PLOT_POINTS*(fs/FFT_LEN)));
+    axisX->setRange(fs/FFT_LEN  , FFT_PLOT_POINTS*(fs/FFT_LEN));
     axisY->setRange(-40.0 , 80.0);
     axisX->setTitleText("Frequency [Hz]");
     axisY->setTitleText("Level [dB]");
 
     //axisX->setTickInterval(50.0);
     axisX->setMinorTickCount(3);
-    axisX->setTickCount(10);
-    axisX->applyNiceNumbers();
+    //axisX->setTickCount(10);
+    //axisX->applyNiceNumbers();
     axisY->setTickCount(7);
     axisY->setMinorTickCount(3);
     axisY->setTickType(QValueAxis::TickType::TicksFixed);
@@ -138,22 +138,15 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
         }
 }
 
-void MainWindow::update_FFT(int index){
-     for(int i=0; i<FFT_PLOT_POINTS ; i++){
-         float dB = FFT[index].binReal[i];
-        freq[i].setY(dB);
-    }
-    FFTseries[index].replace(freq);
+void MainWindow::update_FFT(QVector<QPointF>* freq , int channel){
+   FFTseries[channel].replace(*freq);
    FFT_rd_buff = !FFT_rd_buff;
 }
 
+
 void MainWindow::reset_states(){
     for(int i=0; i < FFT_N ; i++)
-        fft_pos[i]=0;
-    FFT_wr_buff=0;
-    FFT_rd_buff=0;
-    updates=0;
-    writeCopy=0;
+        fft[i]->rewind();
     FFT_wr_buff=0;
     FFT_rd_buff=0;
 }
@@ -170,7 +163,7 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
 void MainWindow::parse_angle(){
     union block_t block = fifo->dequeue();
     for(int i=0; i<128 ; i++)
-        angle[angle_pos++] = block.samples[i]*scale.QE;
+        angle.replace(angle_pos++ , block.samples[i]*scale.QE);
     angle_pos &=8191;
 }
 
@@ -181,7 +174,7 @@ void::MainWindow::parse_lowspeed(){
     gaugeWindow->setTemp(temp);
 }
 
-void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
+void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index,  bool parseFFT , qreal scale){
     union block_t block = fifo->dequeue();
     int readPos = 0;
     if(parseFFT){
@@ -190,10 +183,10 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block.samples[readPos++];
                 sum += val;
-                fft_data[fft_plot][FFT_wr_buff].sample[fft_pos[fft_plot]++] = val;
+                samples[fft_plot].append(val);
             }
             qreal scaled = sum*scale;
-            list[plot][index++].setY(scaled);
+            list[plot].value(index).setY(scaled);
 
             //peak hold
             I[plot].i = abs(scaled);
@@ -211,13 +204,14 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
                 sum += block.samples[readPos++];
             }
             list[plot][index++].setY(sum*scale);
+
         }
     }
 }
 
 
 void MainWindow::update_data(){
-   while(fifo->count() >= 8*ABUFFERS){
+      while(fifo->count() >= 8*ABUFFERS){
         for(int i=0; i<len ; i++)
             listIndex[i]=0;
 
@@ -226,8 +220,8 @@ void MainWindow::update_data(){
             parse(IA , FFT_IA , listIndex[IA] , true , scale.Current);
             parse(IC , FFT_IC , listIndex[IC] , true , scale.Current);
             parse_angle();
-            parse(Torque , OFF, listIndex[Torque] , false , scale.Torque);
-            parse(Flux , OFF, listIndex[Flux] , false , scale.Flux);
+            parse(Torque , OFF, listIndex[Torque] ,false , scale.Torque);
+            parse(Flux   , OFF, listIndex[Flux]   ,false , scale.Flux);
             fifo->removeFirst();//U
             fifo->removeFirst();//ang
         }
@@ -252,12 +246,12 @@ void MainWindow::update_data(){
         float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
         //qDebug()<<rpm;
         gaugeWindow->setShaftSpeed(rpm);
-        if(fft_pos[0] >= FFT_LEN ){
-            for(int i=0; i < FFT_N ; i++)
-                fft_pos[i]=0;
-            FFT_wr_buff=!FFT_wr_buff;
-            for(int i=0; i< FFT_N ; i++)
-                fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , Level , i);
+        if(samples[0].size() == FFT_LEN){
+            for(int ch=0; ch< FFT_N ; ch++){
+                fft_queue[ch].enqueue(samples[ch]);
+                fft[ch]->calcFFT(&fft_queue[ch]);
+                samples[ch].clear();
+            }
         }
     }//while
 }

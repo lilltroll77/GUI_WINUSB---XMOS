@@ -18,7 +18,7 @@ public:
     ~GaugeWindow();
 
 public slots:
-    void setcurrentGauge(I_t I[]);
+    void setcurrentGauge(QVector<I_t> I);
     void setShaftAngle(float angle);
     void setShaftSpeed(float rpm);
     void setTemp(float temp);

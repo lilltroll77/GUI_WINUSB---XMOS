@@ -23,30 +23,57 @@ float interp1(float* x , float* y , float xi , float dx){
 }
 
 FFTworker::FFTworker(QObject *parent) : QObject(parent)
+FFTworker::FFTworker(QObject *parent, int ch) : QObject(parent)
 {
-    const float points =512;
-    const float df = fs/FFT_LEN;
-    for(int i=0; i<scale_points ; i++)
-        linscale[i] = i/(scale_points-1)*fs/2;
-
-    float s=logf(fs);
-    float dx= (log10f(fs/2) - log10f(fs/2)/points)/points;
-    for(int i=0; i<points ; i++){
-        logscale[i]= powf(10 , dx*float(i))-1;
-        qDebug()<< i<< logscale[i];
+    channel = ch;
+    freq.reserve(v_LUT.at(1)*v_LUT.size());
+    for(int v=0; v < v_LUT.size()-1 ; v++){
+        qreal f1 , f2;
+        int width = (1<<v); // 1 2 4 8 16 ...
+        int start = v_LUT.at(v);
+        int stop =  v_LUT.at(v+1);
+        for(int i= start; i< stop ; i+=width){
+                f1 = (qreal) i * (fs/FFT_LEN); // first freq
+                f2 = (qreal)(i+width-1) * (fs/FFT_LEN);
+            qreal f = sqrt(f1*f2); // Calculate mean pos in log scale
+            QPointF pnt(f , 0);
+            freq.append(pnt);
+        }
     }
 }
 
-void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index) {
+void FFTworker::rewind(){
+    fft_data->i=0;
+}
 
+bool FFTworker::bufferFull(){
+    if(fft_data->i>=FFT_LEN)
+        return true;
+    return false;
+}
 
-    fft_object.do_fft((float*) X , (float*)x);
-       if(type == Absolute)
-        emit resultReady(index);
-       else{
-           X->binReal[0] = dB(X->binReal[0] , 1);
-           for(int i=1; i< FFT_PLOT_POINTS ; i++)
-               X->binReal[i] = dB(X->binReal[i] , X->binImag[i]);
-           emit resultReady(index);
+void FFTworker::calcFFT(QQueue<QVector<float>>* fft_queue) {
+    QVector<float> x = fft_queue->dequeue();
+    fft_object.do_fft((float*) &FFT_Data, x.data());
+    int f_log=0;
+     for(int v=0; v < v_LUT.size()-1 ; v++){
+        float max=-1000 , level;
+        int width = 1<<v; // 1 2 4 8 16...
+        int start = v_LUT.at(v);
+        int stop =  v_LUT.at(v+1);
+        for(int i = start; i < stop ; i+=width){
+            for(int k=i; k< width+i ; k++){
+                if(k >= FFT_LEN/2-1){
+                   emit resultReady(&freq , channel);
+                   return;
+                }
+                level=dB(FFT_Data.binReal[k] , FFT_Data.binImag[k]);
+                if( level > max)
+                    max = level;
+            }
+            if(f_log == freq.size())
+                qCritical("f_log == freq.size() in FFTworker::calcFFT");
+            freq[f_log++].setY(max);
         }
+    }
 }
