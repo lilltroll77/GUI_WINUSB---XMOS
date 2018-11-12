@@ -22,7 +22,6 @@ float interp1(float* x , float* y , float xi , float dx){
     return(b0+b1*(xi-x[0])+b2*(xi-x[0])*(xi-x[1]));
 }
 
-FFTworker::FFTworker(QObject *parent) : QObject(parent)
 FFTworker::FFTworker(QObject *parent, int ch) : QObject(parent)
 {
     channel = ch;
