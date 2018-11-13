@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "data_struct.h"
 #include "usbbulk.h"
+#include "control\\controlwindow.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,12 +11,14 @@ int main(int argc, char *argv[])
     fifo->reserve(64*ABUFFERS);
     MainWindow* w = new MainWindow(fifo);
     USBbulk usb(w , fifo);
+    controlwindow control;
 
 
 
 
     //QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
+    control.show();
     usb.start(QThread::TimeCriticalPriority);
     return a.exec();
 }

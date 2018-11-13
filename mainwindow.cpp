@@ -115,8 +115,8 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 
     //FFT_chart->createDefaultAxes();
 
-     //IView ->setRenderHint(QPainter:: Antialiasing);
-     //PIView->setRenderHint(QPainter:: Antialiasing);
+     //IView ->setRenderHint(QPainter:: HighQualityAntialiasing);
+     //PIView->setRenderHint(QPainter:: HighQualityAntialiasing);
      FFTView ->setRenderHint(QPainter:: Antialiasing);
 
      layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
@@ -157,6 +157,12 @@ void MainWindow::update_FFT(int index , enum type_e type){
             freq[i++].setY(FFT[index].loglogMax[k++]);
         }
     }
+
+  /*  QGraphicsScene* scene;
+    QLineF line(10.0, 40.0, 1000.0, 40.0);
+    scene = FFTView->scene();
+    scene->addLine(line);
+ */
     FFTseries[index].replace(freq);
     FFT_rd_buff = !FFT_rd_buff;
 

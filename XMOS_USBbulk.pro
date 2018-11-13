@@ -35,7 +35,10 @@ SOURCES += \
         Gauges/qcgaugewidget.cpp \
         Gauges/qegauge.cpp \
         Gauges/tachometer.cpp \
-        Gauges/tempgauge.cpp
+        Gauges/tempgauge.cpp \
+        Control/knob.cpp \
+        Control/controlwindow.cpp \
+    Control/drv8320s.cpp
 
 
 HEADERS += \
@@ -52,7 +55,10 @@ HEADERS += \
         Gauges/qcgaugewidget.h \
         Gauges/qegauge.h \
         Gauges/tachometer.h \
-        Gauges/tempgauge.h
+        Gauges/tempgauge.h \
+        Control/knob.h \
+        Control/controlwindow.h \
+    Control/drv8320s.h
 
 
 FORMS += \
