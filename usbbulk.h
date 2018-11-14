@@ -3,9 +3,11 @@
 #include <QObject>
 #include <QThread>
 #include <QQueue>
+#include <QMainwindow>
 #include "data_struct.h"
 #include "libusb.h"
 #include "usb_helper_functions.h"
+#include "global_defines.h"
 #include "mainwindow.h"
 
 

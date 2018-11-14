@@ -2,7 +2,7 @@
 #include "mainwindow.h"
 #include "data_struct.h"
 #include "usbbulk.h"
-#include "control\\controlwindow.h"
+#include "controlwindow.h"
 
 int main(int argc, char *argv[])
 {
@@ -18,8 +18,8 @@ int main(int argc, char *argv[])
 
     //QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
-    control.show();
     usb.start(QThread::TimeCriticalPriority);
+    control.show();
     return a.exec();
 }
 

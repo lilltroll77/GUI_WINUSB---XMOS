@@ -4,10 +4,10 @@
 #include "usbbulk.h"
 
 static int last_actual_length;
-
+/// ! Not QmainWindow!!
 USBbulk::USBbulk(MainWindow* w , QQueue<union block_t>* fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
-    connect(this, &USBbulk::sendWarning  , w , &MainWindow::show_Warning);
+    connect(this, &USBbulk::sendWarning   , w , &MainWindow::show_Warning);
     fifo= fifo_ptr;
 }
 
@@ -90,6 +90,7 @@ void USBbulk::run(){
 
         if( fifo->count() >= (8*ABUFFERS)){ // Full data struct
             emit dataAvailable();
+           // qDebug()<<"E";
         }
 
         block = !block;

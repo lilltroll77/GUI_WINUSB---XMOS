@@ -125,6 +125,9 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     masterBox->setTitle("DRV8320S settings");
     font.setBold(true);
     masterBox->setFont(font);
+    QHBoxLayout top_layout(this);
+    top_layout.addWidget(masterBox);
+    this->setLayout(&top_layout);
 
     connect(VDS.combo.comboBox, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_VDSChanged(int)) );
     connect(ODT.combo.comboBox, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_ODTChanged(int)) );

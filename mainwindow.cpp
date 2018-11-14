@@ -7,14 +7,14 @@
 #include <QLogValueAxis>
 #include <QBoxLayout>
 #include "data_struct.h"
-#include "mainwindow.h"
+#include "mainwindow.h"  /// !!! QMainWindow is a Qt class and is not mainwindow.h!!!
 #include "ui_mainwindow.h"
 #include "math.h"
 
 
 MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent)
+    //,ui(new Ui::MainWindow)
 {
     gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
@@ -124,15 +124,19 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
      layout ->addWidget(PIView);
      layout ->addWidget(FFTView);
 
-     box = new QGroupBox("Plots" , this);
-     box->setLayout(layout);
-     this -> setCentralWidget(box);
+     QWidget *placeholderWidget = new QWidget();
+     placeholderWidget->setLayout(layout);
+
+     //box = new QGroupBox("Plots" , this);
+     //box->setLayout(layout);
+     this -> setCentralWidget(placeholderWidget);
      this -> setMinimumWidth(1024);
      this -> setMinimumHeight(768);
      for(int i=0; i<FFT_N ; i++){
         connect(fft[i] , &FFTworker::resultReady , this ,  &MainWindow::update_FFT );
         fft_thread[i]->start();
         }
+
 }
 
 void MainWindow::update_FFT(int index , enum type_e type){
@@ -243,7 +247,8 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
 
 
 void MainWindow::update_data(){
-   while(fifo->count() >= 8*ABUFFERS){
+   //qDebug("R");
+    while(fifo->count() >= 8*ABUFFERS){
         for(int i=0; i<len ; i++)
             listIndex[i]=0;
 

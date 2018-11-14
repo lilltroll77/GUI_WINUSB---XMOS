@@ -1,5 +1,5 @@
 #include "gaugewindow.h"
-#include "mainwindow.h"
+#include <Qmainwindow>
 #include <QDebug>
 
 

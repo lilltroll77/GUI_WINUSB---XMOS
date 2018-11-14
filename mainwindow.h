@@ -10,19 +10,14 @@
 #include <QLayout>
 #include "data_struct.h"
 #include "ffft/FFTRealFixLen.h"
-//#include "usbbulk.h"
 #include "fftworker.h"
 #include "Gauges/gaugewindow.h"
+#include "global_enums.h"
+#include "global_defines.h"
 
-/*Do not draw several lines per pixel*/
-#define DECIMATE 16
-#define ABUFFERS 64
-#define BUFFERS 2
-#define FFT_N 2 /*Number of different FFTs*/
 
 QT_CHARTS_USE_NAMESPACE
-enum plots_e{IA , IB , IC, Flux , Torque , SetFlux , SetTorque};
-enum FFT_e{FFT_IA , FFT_IC , OFF=-1};
+
 
 struct scale_t{
     const qreal QE = 360.0/8192.0;

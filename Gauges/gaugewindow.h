@@ -7,6 +7,7 @@
 #include "tempgauge.h"
 #include "qegauge.h"
 #include "tachometer.h"
+#include "global_enums.h"
 
 
 class GaugeWindow : public QMainWindow

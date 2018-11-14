@@ -1,6 +1,6 @@
 #include "fftworker.h"
 #include "float.h"
-#include "mainwindow.h"
+//#include "mainwindow.h"
 #include <QDebug>
 
 float dB(float a , float b){

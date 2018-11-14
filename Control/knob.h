@@ -27,7 +27,7 @@ public:
   void setTitle(const QString &title);
   void setDecimals(int prec);
   void setSingleStep(double singleStep);
-  QBoxLayout *layout;
+
 
 signals:
 void valueChanged(double Value);
@@ -39,6 +39,8 @@ void setDisabled(bool state);
 
 
 private:
+QBoxLayout *layout;
+QBoxLayout *top_layout;
 bool atMax=false;
 bool atMin=false;
 Scale scale;

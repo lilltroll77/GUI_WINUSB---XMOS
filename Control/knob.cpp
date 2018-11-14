@@ -1,4 +1,5 @@
 #include "knob.h"
+#include "QDebug"
 
 void updateDialPosition(QDial *dial , QDoubleSpinBox *spinbox , Scale scale){
     double minSpin=spinbox->minimum();
@@ -50,24 +51,25 @@ Knob::Knob(const Scale scaletype ,QWidget *parent ,  bool useBox) :
         if(!useBox)
             groupBox->setStyleSheet("QGroupBox{border:0}");
 
-        dial = new QDial();
+        dial = new QDial(this);
         dial->setNotchesVisible(true);
-        dial->setFixedWidth(125);
+        dial->setFixedWidth(65);
         scale=scaletype;
         spinbox  = new QDoubleSpinBox(this);
         spinbox->setAlignment(Qt::AlignCenter);
 
-        spinbox->setFixedWidth(105);
-
-
         layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
-        layout->addWidget(dial , Qt::AlignTop);
-        layout->addWidget(spinbox , Qt::AlignBottom);
-        layout->setSpacing(5);
-
+        layout->addWidget(dial);
+        layout->addWidget(spinbox);
+        layout->setMargin(5);
+        layout->setSpacing(0);
         groupBox->setLayout( layout);
 
 
+        top_layout = new QBoxLayout(QBoxLayout::TopToBottom  , this);
+        top_layout->addWidget(groupBox);
+        this->setLayout(top_layout);
+        //groupBox->setContentsMargins(5,5,5,5);
         connect(dial,   SIGNAL(valueChanged(int))      , this , SLOT(dial_changed(int)) );
         connect(spinbox,SIGNAL(valueChanged(double))  , this , SLOT(spinbox_changed(double)) );
     }

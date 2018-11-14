@@ -37,8 +37,14 @@ SOURCES += \
         Gauges/tachometer.cpp \
         Gauges/tempgauge.cpp \
         Control/knob.cpp \
-        Control/controlwindow.cpp \
-    Control/drv8320s.cpp
+        Control/drv8320s.cpp \
+        Control/eqsection.cpp \
+        Control/calcfilt.cpp \
+        Control/PIsection.cpp \
+        Control/eqchannel.cpp \
+        controlwindow.cpp \
+        Control/bodeplot.cpp \
+        transform.cpp
 
 
 HEADERS += \
@@ -57,17 +63,25 @@ HEADERS += \
         Gauges/tachometer.h \
         Gauges/tempgauge.h \
         Control/knob.h \
-        Control/controlwindow.h \
-    Control/drv8320s.h
+        Control/drv8320s.h \
+        Control/eqsection.h \
+        Control/calcfilt.h \
+        Control/PIsection.h \
+        Control/eqchannel.h \
+        controlwindow.h \
+        Control/bodeplot.h \
+        transform.h \
+        global_enums.h \
+        global_defines.h
 
 
-FORMS += \
-        mainwindow.ui
+#FORMS += \
+#        mainwindow.ui
 
 LD
 
 
 win32: LIBS += -L$$PWD/MinGW64/dll/ -llibusb-1.0.dll -lusb-1.0
 
-INCLUDEPATH += $$PWD/MinGW64/dll
+INCLUDEPATH += $$PWD/MinGW64/dll $$PWD/Control
 DEPENDPATH += $$PWD/MinGW64/dll
