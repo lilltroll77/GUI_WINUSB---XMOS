@@ -1,10 +1,12 @@
 #include "PIsection.h"
+
 #include <QDebug>
 
-PISection::PISection(QWidget *parent, int fs):
+PISection::PISection(QWidget *parent, int ID):
       QWidget(parent)
   {
 
+      channelID = ID;
       topLayout = new QVBoxLayout(this);
       layout = new QBoxLayout(QBoxLayout::TopToBottom,this);
       groupBox = new QGroupBox(this);
@@ -12,14 +14,14 @@ PISection::PISection(QWidget *parent, int fs):
       knob_fc = new Knob(logScale , this);
       knob_fc-> setTitle("Fc [Hz]");
       knob_fc-> setKnobColor("rgb(255, 127, 127)");
-      knob_fc->setRange( FMIN , fs, 100);
+      knob_fc->setRange( 2 , 5000, 100);
       knob_fc->setDecimals(0);
       knob_fc->setSingleStep(1);
       knob_fc->setValue(DEFAULT_FC);
       knob_gain = new Knob(linScale , this);
       knob_gain-> setTitle("Gain [dB]");
       knob_gain-> setKnobColor("rgb(127, 127, 255)");
-      knob_gain->setRange(-20,10,60);
+      knob_gain->setRange(-50 , 50 , 101);
       knob_gain->setDecimals(1);
       knob_gain->setSingleStep(0.1);
       knob_gain->setValue(DEFAULT_GAIN);
@@ -40,7 +42,7 @@ PISection::PISection(QWidget *parent, int fs):
       groupBox->setChecked(true);
       groupBox->setToolTip(tr("PI controller"));
       groupBox->setTitle("PI");
-
+      updateSettingsAndPlot(true);
       connect(knob_gain , SIGNAL(valueChanged(double)) , this ,   SLOT(slot_gainChanged(double)));
       connect(knob_fc ,   SIGNAL(valueChanged(double)) , this ,   SLOT(slot_fcChanged(double)));
 
@@ -48,12 +50,10 @@ PISection::PISection(QWidget *parent, int fs):
       topLayout->addWidget(groupBox);
       topLayout->setContentsMargins(3,10,3,10);
       this->setLayout(topLayout);
+
   }
 
 
-  void PISection::setSectionID(int newID){
-      sectionID=newID;
-  }
 
 
   void PISection::setBoxTitle(const QString & title){
@@ -101,28 +101,27 @@ PISection::PISection(QWidget *parent, int fs):
       }
 
 
-  void::PISection::updateSettingsAndPlot(bool updatePlot , int new_fs){
-      fs = new_fs;
-      EQ_section_t EQ;
-      EQ.Fc = knob_fc->Value();
-      EQ.Gain = knob_gain->Value();
-      calc_PI(PIsettings ,  fs, B , A );
-     // freqz(B ,A , freq);
+  void::PISection::updateSettingsAndPlot(bool updatePlot){
+      PIsettings.Fc   = knob_fc->Value();
+      PIsettings.Gain = knob_gain->Value();
+      calc_PI(PIsettings , B , A );
       if(updatePlot)
-        emit PIchanged(B,A); //Signal to parent its time to update plot
+        emit PIchanged(B,A , channelID); //Signal to parent its time to update plot
   }
 
 
   //SLOTS
   void PISection::slot_gainChanged(double gain){
         PIsettings.Gain = gain;
-        calc_PI(PIsettings , fs, B , A );
-        emit PIchanged(B,A);
+        calc_PI(PIsettings , B , A );
+        emit PIchanged(B , A , channelID);
   }
 
 
   void PISection::slot_fcChanged(double fc){
        PIsettings.Fc=fc;
+       calc_PI(PIsettings , B , A );
+       emit PIchanged(B , A , channelID);
   }
 
   void PISection::slot_filtertypeChanged(int type){

@@ -25,7 +25,6 @@ private:
     DRV8320S* drv8320;
     EQChannel* torque;
     EQChannel* flux;
-    double fs=300000;
     bodeplot* bode;
 
 };

@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
 
 
 
-
     //QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
     usb.start(QThread::TimeCriticalPriority);

@@ -5,6 +5,9 @@
 #include <QtCharts>
 #include <QChartView>
 #include <QVector>
+#include "complex.h"
+#include "global_defines.h"
+
 
 QT_CHARTS_USE_NAMESPACE
 
@@ -17,8 +20,12 @@ public:
 signals:
 
 public slots:
+ void PIchanged(double B[3] , double A[2], int channel);
+ void EQchanged(double B[3] , double A[2], int channel , int section);
+
 
 private:
+    void calcLevel(int channel);
     QChart* chart;
     QChartView* chartview;
     QLineSeries bodeTorque;
@@ -27,6 +34,8 @@ private:
     QValueAxis levelAxis;
     QVector<float> freq;
     QVBoxLayout top_layout;
+    std::complex<double> H[2][3][BODE_PLOTSIZE]; //channel//section//index
+    double level[BODE_PLOTSIZE];
 
 };
 

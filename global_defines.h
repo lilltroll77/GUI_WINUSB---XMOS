@@ -6,5 +6,7 @@
 #define ABUFFERS 64
 #define BUFFERS 2
 #define FFT_N 2 /*Number of different FFTs*/
+#define FS (5e8/26/64)
+#define BODE_PLOTSIZE 500
 
 #endif // GLOBAL_DEFINES_H

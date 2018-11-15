@@ -13,8 +13,10 @@ class EQChannel : public QWidget
 {
     Q_OBJECT
 public:
-    explicit EQChannel(QWidget *parent = nullptr , int new_channel=0 , double fs=0, QString title="");
+    explicit EQChannel(QWidget *parent = nullptr , int new_channel=0 , QString title="");
     ~EQChannel();
+    PISection *PI;
+    EQsection *EQ[2];
 
 
 signals:
@@ -27,8 +29,8 @@ QGridLayout *layout;
 QVBoxLayout *top_layout;
 QGroupBox *groupBox;
 int channel;
-EQsection *EQ[2];
-PISection *PI;
+
+
 
 };
 

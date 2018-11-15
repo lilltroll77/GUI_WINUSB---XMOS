@@ -1,9 +1,12 @@
 #include "eqsection.h"
+#include "global_defines.h"
 #include <QDebug>
 
-EQsection::EQsection(QWidget *parent, int fs):
+EQsection::EQsection(QWidget *parent, int channel , int section):
       QWidget(parent)
   {
+      channelID = channel;
+      sectionID = section;
 
       topLayout = new QVBoxLayout(this);
       layout = new QBoxLayout(QBoxLayout::TopToBottom,this);
@@ -12,10 +15,10 @@ EQsection::EQsection(QWidget *parent, int fs):
       knob_fc = new Knob(logScale , this);
       knob_fc-> setTitle("Fc [Hz]");
       knob_fc-> setKnobColor("rgb(255, 127, 127)");
-      knob_fc->setRange( FMIN , fs, 100);
+      knob_fc->setRange( FMIN , FS/2, 100);
       knob_fc->setDecimals(0);
       knob_fc->setSingleStep(1);
-      knob_fc->setValue(DEFAULT_FC);
+      knob_fc->setValue(EQ.Fc);
       //knob_fc->setFixedWidth(80);
       knob_Q = new Knob(logScale , this);
       knob_Q-> setTitle("Q");
@@ -23,7 +26,7 @@ EQsection::EQsection(QWidget *parent, int fs):
       knob_Q->setRange(0.1 ,30 , 100);
       knob_Q->setDecimals(3);
       knob_Q->setSingleStep(0.01);
-      knob_Q->setValue(DEFAULT_Q);
+      knob_Q->setValue(EQ.Q);
       //knob_Q->setFixedWidth(80);
       knob_gain = new Knob(linScale , this);
       knob_gain-> setTitle("Gain [dB]");
@@ -31,25 +34,18 @@ EQsection::EQsection(QWidget *parent, int fs):
       knob_gain->setRange(-20,10,60);
       knob_gain->setDecimals(1);
       knob_gain->setSingleStep(0.1);
-      knob_gain->setValue(DEFAULT_GAIN);
+      knob_gain->setValue(EQ.Gain);
       filterType = new QComboBox(this);
       filterType-> setToolTip(tr("Filter type"));
 
-      filterType->addItem(tr("1:st order LP"),QVariant(LP1));
-      filterType->addItem(tr("2:nd order LP"),QVariant(LP2));
-      filterType->addItem(tr("1:st order HP"),QVariant(HP1));
-      filterType->addItem(tr("2:nd order HP"),QVariant(HP2));
 
-      filterType->addItem(tr("Low Shelf (1:st)"),QVariant(LowShelf1));
-      filterType->addItem(tr("Low Shelf (2:nd)"),QVariant(LowShelf2));
-      filterType->addItem(tr("High Shelf (1:st)"),QVariant(HighShelf1));
-      filterType->addItem(tr("High Shelf (2:nd)"),QVariant(HighShelf2));
-      filterType->addItem(tr("Peaking EQ"),QVariant(PeakingEQ));
+      filterType->addItem(tr("Lead comp."),QVariant(Lead));
+      filterType->addItem(tr("Lead^2 comp"),QVariant(Lead2));
+      filterType->addItem(tr("Lag comp"),QVariant(Lag));
+      filterType->addItem(tr("Lag^2 comp"),QVariant(Lag2));
       filterType->addItem(tr("Notch"),QVariant(Notch));
       filterType->addItem(tr("AllPass"),QVariant(AllPass));
-      filterType->addItem(tr("BandPass"),QVariant(BandPass));
-      filterType->addItem(tr("Mute"),QVariant(Mute));
-      filterType->setCurrentIndex(DEFAULT_FILTER);
+       filterType->setCurrentIndex(EQ.type);
       //filterType->setFixedWidth(110);
       layout->addWidget(filterType);
       layout->addWidget(knob_fc);
@@ -72,7 +68,7 @@ EQsection::EQsection(QWidget *parent, int fs):
       connect(knob_gain , SIGNAL(valueChanged(double)) , this ,   SLOT(slot_gainChanged(double)));
       connect(knob_Q ,    SIGNAL(valueChanged(double)) , this ,   SLOT(slot_Q_Changed(double)));
       connect(knob_fc ,   SIGNAL(valueChanged(double)) , this ,   SLOT(slot_fcChanged(double)));
-      connect(filterType, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_filtertypeChanged(int)) );
+      connect(filterType, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_filtertypeChanged(enum filterType_t)) );
       connect(groupBox ,  SIGNAL(clicked(bool))   ,      this ,    SLOT(slot_activeEQChanged(bool)) );
 
 
@@ -154,42 +150,48 @@ EQsection::EQsection(QWidget *parent, int fs):
         filterType->blockSignals(false);
     }
 
-  void::EQsection::updateSettingsAndPlot(bool updatePlot , int new_fs){
-      fs = new_fs;
-      EQ_section_t EQ;
+  void::EQsection::updateSettingsAndPlot(bool updatePlot ){
       EQ.Fc = knob_fc->Value();
       EQ.Q =  knob_Q->Value();
       EQ.Gain = knob_gain->Value();
       EQ.type = (filterType_t)  filterType->currentIndex();
-      calcFilt( EQ, fs , B  ,A );
-     // freqz(B ,A , freq);
+      calcFilt( EQ, B  ,A );
       if(updatePlot)
-        emit eqchanged(); //Signal to parent its time to update plot
+        emit EQchanged(B , A , channelID , sectionID); //Signal to parent its time to update plot
   }
 
 
   //SLOTS
   void EQsection::slot_gainChanged(double gain){
-
+      EQ.Gain = gain;
+      calcFilt( EQ, B  ,A );
+      emit EQchanged(B , A , channelID , sectionID);
   }
 
   void EQsection::slot_Q_Changed(double Q){
-
+      EQ.Q = Q;
+      calcFilt( EQ, B  ,A );
+      emit EQchanged(B , A , channelID , sectionID);
   }
 
   void EQsection::slot_fcChanged(double fc){
-
+      EQ.Fc = fc;
+      calcFilt( EQ, B  ,A );
+      emit EQchanged(B , A , channelID , sectionID);
   }
 
-  void EQsection::slot_filtertypeChanged(int type){
-      if(type == Notch || type == AllPass )
+  void EQsection::slot_filtertypeChanged(enum filterType_t type){
+      if((type == Notch) || (type == AllPass) )
           knob_gain->setDisabled(true);
       else
           knob_gain->setDisabled(false);
-      if(type == LP1|| type==HP1)
+      if(type == Lead || type==Lag)
           knob_Q->setDisabled(true);
       else
           knob_Q->setDisabled(false);
+      EQ.type = type;
+      calcFilt( EQ, B  ,A );
+      emit EQchanged(B , A , channelID , sectionID);
 
   }
 

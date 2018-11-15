@@ -4,22 +4,19 @@
 #include <QVector>
 #include <complex>
 
-#define PLOTSIZE 256
 #define FMIN 10.0
 #define DEFAULT_FC 100
 
-enum filterType_t{PI , LP1, LP2 , HP1 , HP2 , LowShelf1 , LowShelf2 , HighShelf1, HighShelf2 , PeakingEQ , Notch , AllPass , BandPass , Mute};
+enum filterType_t{Lead , Lead2 , Lag , Lag2 , Notch , AllPass , /* DISABLED ->*/ LP1 , LP2 , HP1 , HP2 , BandPass , PeakingEQ, Mute};
 
 //Must match XMOS code
 
 typedef struct{
-        int active;
-        enum filterType_t type;
-        float Fc;
-        int link;
-        float Q;
-        float Gain;
-        float MasterGain;
+        int active=0;
+        enum filterType_t type = Notch;
+        float Fc=1000.0f;
+        float Q=0.701f;
+        float Gain=0;
     }EQ_section_t;
 
 typedef struct{
@@ -34,10 +31,10 @@ typedef struct{
 }EQ_channel_t;
 
 QVector<double>* f_ref();
-void calcFilt(EQ_section_t &EQ , double fs, double Bcoef[3] , double Acoef[2] );
-void calc_freqz(double fmin , double fmax , int fs);
+void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] );
+void set_freqz(double f , int i);
 void freqz(double B[3] , double A[2] , std::complex<double> H[]);
-void calc_PI(PI_section_t &pi ,  double fs, double Bcoef[2] , double Acoef );
+void calc_PI(PI_section_t &pi , double Bcoef[3] , double Acoef[2] );
 
 
 #endif // CALCFILT_H

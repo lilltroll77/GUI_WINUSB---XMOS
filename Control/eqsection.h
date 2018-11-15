@@ -17,12 +17,11 @@ class EQsection : public QWidget
 {
     Q_OBJECT
 public:
-    enum FilterType{PI , LowShelf , HighSelf , PeakingEQ , Notch , AllPass , HighPass , LowPass , BandPass };
-    explicit EQsection(QWidget *parent = nullptr , int fs=0);
+    explicit EQsection(QWidget *parent = nullptr , int channel=0, int section=0);
     ~EQsection();
     void setSectionID(int newID);
     void setBoxTitle(const QString &title);
-    void updateSettingsAndPlot(bool updatePlot, int new_fs);
+    void updateSettingsAndPlot(bool updatePlot);
 
     double getFc();
     void setFc(double , bool);
@@ -40,13 +39,13 @@ public:
 
 
 signals:
-    void eqchanged();
+    void EQchanged(double B[3] , double A[2] , int channel , int section);
 
 private slots:
 void slot_gainChanged(double gain);
 void slot_Q_Changed(double Q);
 void slot_fcChanged(double fc);
-void slot_filtertypeChanged(int type);
+void slot_filtertypeChanged(enum filterType_t);
 void slot_activeEQChanged(bool state);
 
 private:
@@ -60,7 +59,7 @@ private:
  Knob *knob_gain;
  QGroupBox *groupBox;
  QComboBox *filterType;
- float fs;
+ EQ_section_t EQ;
 };
 
 

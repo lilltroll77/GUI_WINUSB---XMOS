@@ -2,7 +2,7 @@
 #include <QDebug>
 #include <QFont>
 
-EQChannel::EQChannel(QWidget *parent , int new_channel, double fs , QString title) :
+EQChannel::EQChannel(QWidget *parent , int new_channel, QString title ) :
     QWidget(parent){
 
     channel=new_channel;
@@ -11,10 +11,11 @@ EQChannel::EQChannel(QWidget *parent , int new_channel, double fs , QString titl
     top_layout = new QVBoxLayout(this);
     groupBox = new QGroupBox(this);
 
-    PI = new PISection(this , 1000);
+    PI = new PISection(this , channel);
     layout->addWidget(PI , 0 , 0 , 1 , 1 , Qt::AlignTop);
     for(int i=0; i<2 ; i++){
-        EQ[i] = new EQsection(this , 1000);
+        int section = i+1;
+        EQ[i] = new EQsection(this , channel , section);
         layout->addWidget(EQ[i] , 0 , 1+i,2,1,Qt::AlignTop);
     }
     layout->setSpacing(0);
