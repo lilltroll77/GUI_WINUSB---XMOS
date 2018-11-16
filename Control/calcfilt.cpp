@@ -7,25 +7,43 @@
 
 
 /// TODO make a class of this!
+float f_log[BODE_PLOTSIZE];
 std::complex<double> ejw[BODE_PLOTSIZE];
+std::complex<double> ejw2[BODE_PLOTSIZE];
 std::complex<double> jw;
 std::complex<double> one(1,0);
-std::complex<double> c;
+
 
 
 void set_freqz(double f , int i)
 {
    if(i>=BODE_PLOTSIZE)
        qFatal("Array out of bound in set_freqz");
+   f_log[i] = f;
    jw.imag(2* M_PI * f / (double)FS);
-   ejw[i]=exp(jw); // Precalc e^jw and where w = 2*pi f/FS
+   ejw[i]=exp(jw)+ 1e-6; // Precalc e^jw and where w = 2*pi f/FS
+   ejw2[i]= ejw[i] * ejw[i];
 }
 
 
-void freqz(double B[3] , double A[2] , std::complex<double> H[BODE_PLOTSIZE]){
+void freqz(double B[3] , double A[2] , float fc , std::complex<double> H[BODE_PLOTSIZE]){
+    int replace_done=true;
+    std::complex<double> jwc , c , c2;
+    if(fc>0){
+        jwc.imag(2* M_PI * fc / (double)FS);
+         replace_done=false;
+    }
     for(int i=0 ; i<BODE_PLOTSIZE ; i++){
-        c = ejw[i];
-        H[i] =( B[0] + B[1]*c + B[2]*c*c )/ (one + A[0]*c + A[1]*c*c);
+        if(f_log[i] > fc  && !replace_done){
+            c = exp(jwc) + 1e-6;
+            c2 = c*c;
+            replace_done=true;
+        }
+        else{
+            c = ejw[i];
+            c2 = ejw2[i];
+        }
+        H[i] =( B[0] + B[1]*c + B[2]*c2 )/ (one + A[0]*c + A[1]*c2);
     }
 }
 
@@ -62,6 +80,15 @@ void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] ){
     % highSelf
    */
     double a0,a1,a2,b0,b1,b2;
+    if(EQ.active == false){
+        Acoef[0] = 0;
+        Acoef[1] = 0;
+        Bcoef[0] = 1;
+        Bcoef[1] = 0;
+        Bcoef[2] = 0;
+        return;
+    }
+
 //Disable the filter with H=1 of f is out of bound
 /*    if( EQ.Fc < 10 || EQ.Fc > FS *0.48  ){
         Bcoef[0]=1;

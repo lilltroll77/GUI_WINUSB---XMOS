@@ -42,7 +42,7 @@ PISection::PISection(QWidget *parent, int ID):
       groupBox->setChecked(true);
       groupBox->setToolTip(tr("PI controller"));
       groupBox->setTitle("PI");
-      updateSettingsAndPlot(true);
+
       connect(knob_gain , SIGNAL(valueChanged(double)) , this ,   SLOT(slot_gainChanged(double)));
       connect(knob_fc ,   SIGNAL(valueChanged(double)) , this ,   SLOT(slot_fcChanged(double)));
 
@@ -50,6 +50,7 @@ PISection::PISection(QWidget *parent, int ID):
       topLayout->addWidget(groupBox);
       topLayout->setContentsMargins(3,10,3,10);
       this->setLayout(topLayout);
+
 
   }
 
@@ -102,8 +103,8 @@ PISection::PISection(QWidget *parent, int ID):
 
 
   void::PISection::updateSettingsAndPlot(bool updatePlot){
-      PIsettings.Fc   = knob_fc->Value();
-      PIsettings.Gain = knob_gain->Value();
+      //PIsettings.Fc   = knob_fc->Value();
+      //PIsettings.Gain = knob_gain->Value();
       calc_PI(PIsettings , B , A );
       if(updatePlot)
         emit PIchanged(B,A , channelID); //Signal to parent its time to update plot

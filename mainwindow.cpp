@@ -212,6 +212,8 @@ void::MainWindow::parse_lowspeed(){
 }
 
 void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
+    if(fifo->size()==0)
+        return;
     union block_t block = fifo->dequeue();
     int readPos = 0;
     if(parseFFT){

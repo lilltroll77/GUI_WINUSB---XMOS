@@ -60,13 +60,13 @@ bodeplot::bodeplot(QWidget *parent) : QWidget(parent)
 void bodeplot::calcLevel(int channel){
     for(int i=0; i<BODE_PLOTSIZE ; i++){
         std::complex<double> c =  H[channel][0][i]  * H[channel][1][i] * H[channel][2][i];
-        level[i] = 20*log10( std::abs(c));
+        level[i] = 10*log10( (double)norm(c) );
     }
 }
 
 void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
     //qDebug() << "PI" << channel;
-    freqz(B , A , H[channel][0]);
+    freqz(B , A , 0 , H[channel][0]);
     calcLevel(channel);
     if(channel == 0){
         for(int i=0; i < BODE_PLOTSIZE ; i++)
@@ -78,9 +78,9 @@ void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
     }
 }
 
-void bodeplot::EQchanged(double B[3] , double A[2], int channel , int section){
+void bodeplot::EQchanged(double B[3] , double A[2], float fc , int channel , int section){
     //qDebug() << "EQ" << channel << section;
-    freqz(B,A, H[channel][section]);
+    freqz(B,A, fc, H[channel][section]);
     calcLevel(channel);
     if(channel == 0){
         for(int i=0; i < BODE_PLOTSIZE ; i++)

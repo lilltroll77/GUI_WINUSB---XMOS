@@ -21,7 +21,7 @@ signals:
 
 public slots:
  void PIchanged(double B[3] , double A[2], int channel);
- void EQchanged(double B[3] , double A[2], int channel , int section);
+ void EQchanged(double B[3] , double A[2], float fc , int channel , int section);
 
 
 private:
@@ -36,6 +36,7 @@ private:
     QVBoxLayout top_layout;
     std::complex<double> H[2][3][BODE_PLOTSIZE]; //channel//section//index
     double level[BODE_PLOTSIZE];
+    float old_fc=0;
 
 };
 

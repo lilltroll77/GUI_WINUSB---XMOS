@@ -39,13 +39,13 @@ public:
 
 
 signals:
-    void EQchanged(double B[3] , double A[2] , int channel , int section);
+    void EQchanged(double B[3] , double A[2] , float fc , int channel , int section);
 
 private slots:
 void slot_gainChanged(double gain);
 void slot_Q_Changed(double Q);
 void slot_fcChanged(double fc);
-void slot_filtertypeChanged(enum filterType_t);
+void slot_filtertypeChanged(int);
 void slot_activeEQChanged(bool state);
 
 private:

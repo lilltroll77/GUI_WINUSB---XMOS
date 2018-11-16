@@ -68,7 +68,7 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
       connect(knob_gain , SIGNAL(valueChanged(double)) , this ,   SLOT(slot_gainChanged(double)));
       connect(knob_Q ,    SIGNAL(valueChanged(double)) , this ,   SLOT(slot_Q_Changed(double)));
       connect(knob_fc ,   SIGNAL(valueChanged(double)) , this ,   SLOT(slot_fcChanged(double)));
-      connect(filterType, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_filtertypeChanged(enum filterType_t)) );
+      connect(filterType, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_filtertypeChanged(int)) );
       connect(groupBox ,  SIGNAL(clicked(bool))   ,      this ,    SLOT(slot_activeEQChanged(bool)) );
 
 
@@ -136,7 +136,7 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
       groupBox->setChecked(state);
       if(blocked)
           groupBox->blockSignals(false);
-      }
+  }
 
  filterType_t EQsection::getFilterType(){
        return (filterType_t) filterType->currentIndex();
@@ -151,13 +151,15 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
     }
 
   void::EQsection::updateSettingsAndPlot(bool updatePlot ){
-      EQ.Fc = knob_fc->Value();
-      EQ.Q =  knob_Q->Value();
-      EQ.Gain = knob_gain->Value();
-      EQ.type = (filterType_t)  filterType->currentIndex();
-      calcFilt( EQ, B  ,A );
+      if(EQ.active){
+          EQ.Fc = knob_fc->Value();
+          EQ.Q =  knob_Q->Value();
+          EQ.Gain = knob_gain->Value();
+          EQ.type = (filterType_t)  filterType->currentIndex();
+          calcFilt( EQ, B  ,A );
+      }
       if(updatePlot)
-        emit EQchanged(B , A , channelID , sectionID); //Signal to parent its time to update plot
+        emit EQchanged(B , A, EQ.Fc , channelID , sectionID); //Signal to parent its time to update plot
   }
 
 
@@ -165,22 +167,22 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
   void EQsection::slot_gainChanged(double gain){
       EQ.Gain = gain;
       calcFilt( EQ, B  ,A );
-      emit EQchanged(B , A , channelID , sectionID);
+      emit EQchanged(B , A , EQ.Fc , channelID , sectionID);
   }
 
   void EQsection::slot_Q_Changed(double Q){
       EQ.Q = Q;
       calcFilt( EQ, B  ,A );
-      emit EQchanged(B , A , channelID , sectionID);
+      emit EQchanged(B , A , EQ.Fc  , channelID , sectionID);
   }
 
   void EQsection::slot_fcChanged(double fc){
       EQ.Fc = fc;
       calcFilt( EQ, B  ,A );
-      emit EQchanged(B , A , channelID , sectionID);
+      emit EQchanged(B , A , EQ.Fc , channelID , sectionID);
   }
 
-  void EQsection::slot_filtertypeChanged(enum filterType_t type){
+  void EQsection::slot_filtertypeChanged(int type){
       if((type == Notch) || (type == AllPass) )
           knob_gain->setDisabled(true);
       else
@@ -189,17 +191,18 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
           knob_Q->setDisabled(true);
       else
           knob_Q->setDisabled(false);
-      EQ.type = type;
+      EQ.type = (enum filterType_t)type;
       calcFilt( EQ, B  ,A );
-      emit EQchanged(B , A , channelID , sectionID);
+      emit EQchanged(B , A , EQ.Fc  , channelID , sectionID);
 
   }
 
 
 
   void EQsection::slot_activeEQChanged(bool state){
-  //
-
+      EQ.active = state;
+      calcFilt( EQ, B  ,A );
+      emit EQchanged(B , A , EQ.Fc  , channelID , sectionID);
   }
 
   EQsection::~EQsection()

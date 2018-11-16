@@ -33,7 +33,7 @@ typedef struct{
 QVector<double>* f_ref();
 void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] );
 void set_freqz(double f , int i);
-void freqz(double B[3] , double A[2] , std::complex<double> H[]);
+void freqz(double B[3] , double A[2], float fc , std::complex<double> H[]);
 void calc_PI(PI_section_t &pi , double Bcoef[3] , double Acoef[2] );
 
 

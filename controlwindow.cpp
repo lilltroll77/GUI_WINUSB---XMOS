@@ -23,6 +23,9 @@ controlwindow::controlwindow(QWidget *parent) : QMainWindow(parent)
   connect(flux->PI      , &PISection::PIchanged , bode , &bodeplot::PIchanged );
   connect(flux->EQ[0]   , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
   connect(flux->EQ[1]   , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
+
+  torque->PI->updateSettingsAndPlot(true);
+  flux->PI->updateSettingsAndPlot(true);
 }
 
 controlwindow::~controlwindow(){
