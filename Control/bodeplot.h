@@ -35,6 +35,7 @@ private:
     QVector<float> freq;
     QVBoxLayout top_layout;
     std::complex<double> H[2][3][BODE_PLOTSIZE]; //channel//section//index
+    std::complex<double> c;
     double level[BODE_PLOTSIZE];
     float old_fc=0;
 

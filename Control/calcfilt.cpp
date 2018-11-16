@@ -3,7 +3,7 @@
 #include <complex>
 #include <QVector>
 #include "calcfilt.h"
-#include "global_defines.h"
+
 
 
 /// TODO make a class of this!
@@ -21,29 +21,35 @@ void set_freqz(double f , int i)
        qFatal("Array out of bound in set_freqz");
    f_log[i] = f;
    jw.imag(2* M_PI * f / (double)FS);
-   ejw[i]=exp(jw)+ 1e-6; // Precalc e^jw and where w = 2*pi f/FS
+   ejw[i]=exp(jw); // Precalc e^jw and where w = 2*pi f/FS
    ejw2[i]= ejw[i] * ejw[i];
 }
 
 
 void freqz(double B[3] , double A[2] , float fc , std::complex<double> H[BODE_PLOTSIZE]){
     int replace_done=true;
-    std::complex<double> jwc , c , c2;
+    std::complex<double> jwc , c , c2 , denominator , Hrep;
     if(fc>0){
         jwc.imag(2* M_PI * fc / (double)FS);
-         replace_done=false;
+        c = exp(jwc);
+        c2 = c*c;
+        Hrep = ( B[0] + B[1]*c + B[2]*c2 )/ (one + A[0]*c + A[1]*c2);
+        if(norm(Hrep)< pow(10 , BODE_MIN_LEVEL/10))
+            replace_done=false;
     }
     for(int i=0 ; i<BODE_PLOTSIZE ; i++){
         if(f_log[i] > fc  && !replace_done){
-            c = exp(jwc) + 1e-6;
-            c2 = c*c;
+            H[i] = Hrep;
+            if(i>0)
+                H[i-1] = Hrep;
             replace_done=true;
         }
         else{
             c = ejw[i];
             c2 = ejw2[i];
+            H[i] =( B[0] + B[1]*c + B[2]*c2 )/ (one + A[0]*c + A[1]*c2);
         }
-        H[i] =( B[0] + B[1]*c + B[2]*c2 )/ (one + A[0]*c + A[1]*c2);
+
     }
 }
 

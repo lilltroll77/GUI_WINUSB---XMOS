@@ -58,10 +58,11 @@ bodeplot::bodeplot(QWidget *parent) : QWidget(parent)
 }
 
 void bodeplot::calcLevel(int channel){
+    const double min_norm = pow(10 , BODE_MIN_LEVEL/10);
     for(int i=0; i<BODE_PLOTSIZE ; i++){
         std::complex<double> c =  H[channel][0][i]  * H[channel][1][i] * H[channel][2][i];
-        level[i] = 10*log10( (double)norm(c) );
-    }
+        level[i] = 10*log10( (double)norm(c) + min_norm);
+     }
 }
 
 void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
