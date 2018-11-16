@@ -65,17 +65,7 @@ void bodeplot::calcLevel(int channel){
 }
 
 void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
-    //qDebug() << "PI" << channel;
-    freqz(B , A , 0 , H[channel][0]);
-    calcLevel(channel);
-    if(channel == 0){
-        for(int i=0; i < BODE_PLOTSIZE ; i++)
-            bodeTorque.replace(i, bodeTorque.at(i).x(), level[i]);
-    }
-    else{
-        for(int i=0; i < BODE_PLOTSIZE ; i++)
-            bodeFlux.replace(i, bodeFlux.at(i).x(), level[i]);
-    }
+  EQchanged(B , A, 0 , channel , 0);
 }
 
 void bodeplot::EQchanged(double B[3] , double A[2], float fc , int channel , int section){
@@ -83,11 +73,17 @@ void bodeplot::EQchanged(double B[3] , double A[2], float fc , int channel , int
     freqz(B,A, fc, H[channel][section]);
     calcLevel(channel);
     if(channel == 0){
+        bodeTorque.blockSignals(true);
         for(int i=0; i < BODE_PLOTSIZE ; i++)
             bodeTorque.replace(i, bodeTorque.at(i).x(), level[i]);
+        bodeTorque.blockSignals(false);
+        bodeTorque.pointsReplaced(); // only send 1 signal
     }
     else{
+        bodeFlux.blockSignals(true);
         for(int i=0; i < BODE_PLOTSIZE ; i++)
             bodeFlux.replace(i, bodeFlux.at(i).x(), level[i]);
+        bodeFlux.blockSignals(false);
+        bodeFlux.pointsReplaced(); // only send 1 signal
     }
 }
