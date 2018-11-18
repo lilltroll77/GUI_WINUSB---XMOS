@@ -62,11 +62,11 @@ void GaugeWindow::setTemp(float temp){
 }
 
 
-void GaugeWindow::setcurrentGauge(struct I_t I[]){
+void GaugeWindow::setcurrentGauge(struct I_t current[]){
     I_t Imax={0,0};
-    float Ia=I[IA].peak;
-    float Ib=I[IB].peak;
-    float Ic=I[IC].peak;
+    float Ia=current[IA].peak;
+    float Ib=current[IB].peak;
+    float Ic=current[IC].peak;
     if(Ia > Ic)
         Imax.peak = Ia;
     else
@@ -75,9 +75,9 @@ void GaugeWindow::setcurrentGauge(struct I_t I[]){
         Imax.peak = Ib;
     if(Imax.peak > 32)
         Imax.peak = 32;
-    Ia = sqrtf(I[IA].RMS);
-    Ib = sqrtf(I[IB].RMS);
-    Ic = sqrtf(I[IC].RMS);
+    Ia = sqrtf(current[IA].RMS);
+    Ib = sqrtf(current[IB].RMS);
+    Ic = sqrtf(current[IC].RMS);
     Imax.RMS = (Ia + Ib + Ic )/3; // Add RMS currents
 
     //qDebug()<< Imax.RMS;

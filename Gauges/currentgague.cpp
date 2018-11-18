@@ -71,19 +71,19 @@ currentGague::currentGague(QWidget *parent , float imax) : QWidget(parent)
         widget->update();
 }
 
-void currentGague::setScale(float I){
-    Imax = I;
-    float Imax_scale =scale_overcurrent*I;
+void currentGague::setScale(float current){
+    Imax = current;
+    float Imax_scale =scale_overcurrent*current;
     Values->setMaxValue(Imax_scale);
     if(Imax_scale>10){
         Values->setStep(5);
         DegreeSubItem->setStep(100/Imax_scale);
         DegreeItem->setStep(500/Imax_scale);
-    }else if(I<1){
+    }else if(current<1){
         Values->setStep(0.1f);
         DegreeSubItem->setStep(2/Imax_scale);
         DegreeItem->setStep(10/Imax_scale);
-   }else if(I<3){
+   }else if(current<3){
         Values->setStep(0.5f);
         DegreeSubItem->setStep(10/Imax_scale);
         DegreeItem->setStep(50/Imax_scale);
@@ -94,7 +94,7 @@ void currentGague::setScale(float I){
     }
 }
 
-void currentGague::setCurrent(struct I_t *I){
-    peak_needle.Item->setCurrentValue(I->peak * (100/(scale_overcurrent*Imax)));
-    ms_needle.Item  ->setCurrentValue(I->RMS * (100/(scale_overcurrent*Imax)));
+void currentGague::setCurrent(struct I_t *current){
+    peak_needle.Item->setCurrentValue(current->peak * (100/(scale_overcurrent*Imax)));
+    ms_needle.Item  ->setCurrentValue(current->RMS * (100/(scale_overcurrent*Imax)));
 }

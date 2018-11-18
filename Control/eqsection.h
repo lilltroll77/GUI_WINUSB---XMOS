@@ -34,12 +34,10 @@ public:
     bool getFilterActive();
     void setFilterActive(bool , bool);
 
-    double B[3];
-    double A[2];
-
 
 signals:
     void EQchanged(double B[3] , double A[2] , float fc , int channel , int section);
+    void sendEQsettings(EQ_section_t &EQ , int channel , int section );
 
 private slots:
 void slot_gainChanged(double gain);
@@ -49,6 +47,7 @@ void slot_filtertypeChanged(int);
 void slot_activeEQChanged(bool state);
 
 private:
+ void update_KnobsEnabled();
  quint16 *port;
  int channelID;
  int sectionID;

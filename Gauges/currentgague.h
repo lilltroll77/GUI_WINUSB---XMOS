@@ -24,8 +24,8 @@ public:
 signals:
 
 public slots:
-    void setCurrent(struct I_t *I);
-    void setScale(float I);
+    void setCurrent(struct I_t *current);
+    void setScale(float current);
 
 
 private:

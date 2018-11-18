@@ -228,12 +228,12 @@ void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bo
             list[plot][index++].setY(scaled);
 
             //peak hold
-            I[plot].i = abs(scaled);
-            if(I[plot].i >= I[plot].peak)
-                I[plot].peak = I[plot].i;
+            current[plot].i = abs(scaled);
+            if(current[plot].i >= current[plot].peak)
+                current[plot].peak = current[plot].i;
             else
-                I[plot].peak -=2*(dt/1000); //[A/s]
-            I[plot].RMS = filter(scaled*scaled , plot);
+                current[plot].peak -=2*(dt/1000); //[A/s]
+            current[plot].RMS = filter(scaled*scaled , plot);
         }
     }
     else{
@@ -268,12 +268,12 @@ void MainWindow::update_data(){
             list[IB][i].setY(-list[IA][i].y() - list[IC][i].y() );
         for(int i=0; i<(128/DECIMATE) ; i++){ // A already
             qreal Ib = list[IA][i].y() + list[IC][i].y();
-            I[IB].RMS = filter(Ib*Ib , IB);
+            current[IB].RMS = filter(Ib*Ib , IB);
             float absIb= abs(Ib);
-            if(absIb >  I[IB].peak)
-                I[IB].peak = absIb;
+            if(absIb >  current[IB].peak)
+                current[IB].peak = absIb;
             else
-                I[IB].peak -=2*(dt/1000);
+                current[IB].peak -=2*(dt/1000);
         }
 
         series[IA].replace(list[IA]);
@@ -281,7 +281,7 @@ void MainWindow::update_data(){
         series[IC].replace(list[IC]);
         series[Torque].replace(list[Torque]);
         series[Flux].replace(list[Flux]);
-        gaugeWindow->setcurrentGauge(I);
+        gaugeWindow->setcurrentGauge(current);
         float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
         //qDebug()<<rpm;
         gaugeWindow->setShaftSpeed(rpm);

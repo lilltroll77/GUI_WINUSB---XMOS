@@ -1,7 +1,7 @@
 #include "controlwindow.h"
 
 
-controlwindow::controlwindow(QWidget *parent) : QMainWindow(parent)
+controlwindow::controlwindow(USBbulk* usb , QWidget *parent ) : QMainWindow(parent)
 {
   setWindowTitle("Regulator");
   top_layout = new QGridLayout(this);
@@ -18,11 +18,16 @@ controlwindow::controlwindow(QWidget *parent) : QMainWindow(parent)
   groupbox->setLayout(top_layout);
   this->setCentralWidget(groupbox);
   connect(torque->PI    , &PISection::PIchanged , bode , &bodeplot::PIchanged );
-  connect(torque->EQ[0] , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
-  connect(torque->EQ[1] , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
+  connect(torque->PI    , &PISection::sendPIsettings , usb , &USBbulk::sendPIsettings);
   connect(flux->PI      , &PISection::PIchanged , bode , &bodeplot::PIchanged );
-  connect(flux->EQ[0]   , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
-  connect(flux->EQ[1]   , &EQsection::EQchanged , bode , &bodeplot::EQchanged);
+  connect(flux->PI      , &PISection::sendPIsettings , usb , &USBbulk::sendPIsettings);
+
+  for(int i=0; i<2 ; i++){
+    connect(torque->EQ[i] , &EQsection::EQchanged    , bode , &bodeplot::EQchanged);
+    connect(torque->EQ[i] , &EQsection::sendEQsettings , usb , &USBbulk::sendEQsettings);
+    connect(flux->EQ[i]   , &EQsection::EQchanged    , bode , &bodeplot::EQchanged);
+    connect(flux->EQ[i] ,   &EQsection::sendEQsettings , usb , &USBbulk::sendEQsettings);
+    }
 
   torque->PI->updateSettingsAndPlot(true);
   flux->PI->updateSettingsAndPlot(true);

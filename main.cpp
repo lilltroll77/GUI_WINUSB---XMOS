@@ -11,7 +11,9 @@ int main(int argc, char *argv[])
     fifo->reserve(64*ABUFFERS);
     MainWindow* w = new MainWindow(fifo);
     USBbulk usb(w , fifo);
-    controlwindow control;
+    controlwindow control(&usb);
+
+
 
 
 

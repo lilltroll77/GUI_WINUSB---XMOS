@@ -8,12 +8,13 @@
 #include "Control\\drv8320s.h"
 #include "Control\\eqchannel.h"
 #include "bodeplot.h"
+#include "usbbulk.h"
 
 class controlwindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit controlwindow(QWidget *parent = nullptr);
+    explicit controlwindow(USBbulk *usb=nullptr, QWidget *parent = nullptr );
     ~controlwindow();
 signals:
 

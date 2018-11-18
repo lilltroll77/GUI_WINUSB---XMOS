@@ -57,7 +57,7 @@ void freqz(double B[3] , double A[2] , float fc , std::complex<double> H[BODE_PL
 void calc_PI(PI_section_t &pi , double Bcoef[3] , double Acoef[2] ){
     //Bilinear transformation of T(s) = (s + 2*pi*fc)/s
     double k =M_PI/2 * pi.Fc/FS;
-    double a=pow(10, pi.Gain/20);
+    double a = pow(10, pi.Gain/20);
     Acoef[0] = -1;
     Acoef[1] = 0;
     Bcoef[0] = a*(k+1);
@@ -67,7 +67,7 @@ void calc_PI(PI_section_t &pi , double Bcoef[3] , double Acoef[2] ){
 }
 
 
-void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] ){
+void calcFilt(EQ_section_t &EQ){
  /*
 %Calculate parametric EQ coef
     %f0 is the filter frequency
@@ -87,11 +87,11 @@ void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] ){
    */
     double a0,a1,a2,b0,b1,b2;
     if(EQ.active == false){
-        Acoef[0] = 0;
-        Acoef[1] = 0;
-        Bcoef[0] = 1;
-        Bcoef[1] = 0;
-        Bcoef[2] = 0;
+        EQ.B0 = 1;
+        EQ.B1 = 0;
+        EQ.B2 = 0;
+        EQ.A1 = 0;
+        EQ.A2 = 0;
         return;
     }
 
@@ -231,11 +231,19 @@ void calcFilt(EQ_section_t &EQ , double Bcoef[3] , double Acoef[2] ){
         a1=0;
         a2=0;
     }
-    Acoef[0] = a1/a0;
-    Acoef[1] = a2/a0;
-    Bcoef[0] = b0/a0;
-    Bcoef[1] = b1/a0;
-    Bcoef[2] = b2/a0;
+    EQ.A1 = a1/a0;
+    EQ.A2 = a2/a0;
+    EQ.B0 = b0/a0;
+    EQ.B1 = b1/a0;
+    EQ.B2 = b2/a0;
+    const double scale = pow(2 , 30);
+    EQ.A1f = round(EQ.A1 * scale);
+    EQ.A2f = round(EQ.A2 * scale);
+    EQ.B0f = round(EQ.B0 * scale);
+    EQ.B1f = round(EQ.B1 * scale);
+    EQ.B2f = round(EQ.B2 * scale);
+
+
 }
 
 

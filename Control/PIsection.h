@@ -32,6 +32,7 @@ public:
 
 signals:
     void PIchanged(double B[3] , double A[2] , int channel);
+    void sendPIsettings(PI_section_t &PIsection , int channel);
 
 private slots:
 void slot_gainChanged(double gain);

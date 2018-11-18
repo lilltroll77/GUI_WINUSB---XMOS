@@ -115,11 +115,44 @@ void USBbulk::callback(struct libusb_transfer *transfer){
     //static struct USBmem_t* buffer = (struct USBmem_t*) transfer->buffer;
 }
 void USBbulk::start_stream(){
+    if(handle == nullptr){
+        testHandleMsg();
+        return;
+    }
     libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamON, sizeof streamON, NULL , 0);
     block=0;
 }
 void USBbulk::stop_stream(){
+    if(handle == nullptr){
+        testHandleMsg();
+        return;
+    }
     libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamOFF, sizeof streamOFF, NULL , 0);
+}
+
+void USBbulk::sendPIsettings(PI_section_t &PIsection , int channel){
+    struct USB_PIsection_t pi;
+    pi.channel =channel;
+    pi.section.Fc = PIsection.Fc;
+    pi.section.Gain = PIsection.Gain;
+    if(handle == nullptr){
+        testHandleMsg();
+        return;
+    }
+    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &pi, sizeof(pi), NULL , 0);
+    //qDebug()<<"Sent PI settings with len=" <<sizeof(pi) << "bytes. Ch"<< channel <<"Fc="<<pi.section.Fc << "Gain=" << pi.section.Gain;
+}
+
+void USBbulk::sendEQsettings(EQ_section_t &EQ , int channel , int section ){
+    struct USB_EQsection_t eq;
+    eq.channel = channel;
+    eq.section = section;
+    memcpy(&eq.data , &EQ , 10*sizeof(qint32));
+    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 14*sizeof(qint32), NULL , 0);
+}
+
+void USBbulk::testHandleMsg(){
+     qInfo("USB link has not been established!");
 }
 
 USBbulk::~USBbulk()

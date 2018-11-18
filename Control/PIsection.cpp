@@ -55,8 +55,6 @@ PISection::PISection(QWidget *parent, int ID):
   }
 
 
-
-
   void PISection::setBoxTitle(const QString & title){
       groupBox->setTitle(title);
   }
@@ -108,6 +106,7 @@ PISection::PISection(QWidget *parent, int ID):
       calc_PI(PIsettings , B , A );
       if(updatePlot)
         emit PIchanged(B,A , channelID); //Signal to parent its time to update plot
+      emit sendPIsettings(PIsettings , channelID);
   }
 
 
@@ -116,6 +115,7 @@ PISection::PISection(QWidget *parent, int ID):
         PIsettings.Gain = gain;
         calc_PI(PIsettings , B , A );
         emit PIchanged(B , A , channelID);
+        emit sendPIsettings(PIsettings , channelID);
   }
 
 
@@ -123,6 +123,8 @@ PISection::PISection(QWidget *parent, int ID):
        PIsettings.Fc=fc;
        calc_PI(PIsettings , B , A );
        emit PIchanged(B , A , channelID);
+       emit sendPIsettings(PIsettings , channelID);
+
   }
 
   void PISection::slot_filtertypeChanged(int type){

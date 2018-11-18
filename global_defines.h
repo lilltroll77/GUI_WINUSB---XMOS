@@ -8,6 +8,6 @@
 #define FFT_N 2 /*Number of different FFTs*/
 #define FS (5e8/26/64)
 #define BODE_PLOTSIZE 512
-#define BODE_MIN_LEVEL -50
+#define BODE_MIN_LEVEL (-50)
 
 #endif // GLOBAL_DEFINES_H

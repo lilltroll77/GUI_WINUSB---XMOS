@@ -86,7 +86,7 @@ private:
     QList<QPointF> freq;
     QQueue<union block_t>* fifo;
     GaugeWindow* gaugeWindow;
-    struct I_t I[3]={0};
+    struct I_t current[3]={{0}};
     qreal Xold[3]={0} , Yold[3]={0};
 };
 

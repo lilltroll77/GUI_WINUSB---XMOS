@@ -19,7 +19,7 @@ public:
     ~GaugeWindow();
 
 public slots:
-    void setcurrentGauge(I_t I[]);
+    void setcurrentGauge(I_t current[]);
     void setShaftAngle(float angle);
     void setShaftSpeed(float rpm);
     void setTemp(float temp);
