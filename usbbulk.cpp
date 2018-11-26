@@ -4,6 +4,7 @@
 #include "usbbulk.h"
 
 static int last_actual_length;
+
 /// ! Not QmainWindow!!
 USBbulk::USBbulk(MainWindow* w , QQueue<union block_t>* fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
@@ -50,8 +51,9 @@ void USBbulk::run(){
      int speed = libusb_get_device_speed(XMOSdev);
      int pkgSize= libusb_get_max_packet_size(XMOSdev , XMOS_BULK_EP_IN);
 
-    stop_stream();
-    wait(100);
+    //stop_stream();
+    //wait(100);
+    Out_transfer = libusb_alloc_transfer(0);
     for(int buff=0; buff<BUFFERS ; buff++){
        In_transfer[buff]  = libusb_alloc_transfer(0);
        libusb_fill_bulk_transfer(       In_transfer[buff], handle, XMOS_BULK_EP_IN ,(unsigned char*) &mem[buff], sizeof(mem[buff]), &USBbulk::callback  , nullptr , 0);
@@ -62,38 +64,44 @@ void USBbulk::run(){
     while(!do_exit){
         //int completed;
         int resync=0;
-        libusb_handle_events_completed(NULL , NULL);
-        union block_t* mem_block = (union block_t*) &mem[block];
+        libusb_handle_events(nullptr);
+        if(last_actual_length == (8*ABUFFERS*PKG_SIZE)){
+            union block_t* mem_block = (union block_t*) &mem[block];
 
-        for(int j=0; j< (8*ABUFFERS) ; j++){
-            if ( (j % 8)== syncPnt && mem_block->lowSpeed.checknumber != pi ){ // every 8 block should have the check number
-                syncPnt = (syncPnt+1)&7;
-                if(!resync){
-                    resync=1;
-                    qDebug() << "Resyncing";
+            for(int j=0; j< (8*ABUFFERS) ; j++){
+                if ( (j % 8)== syncPnt && mem_block->lowSpeed.checknumber != pi ){ // every 8 block should have the check number
+                    syncPnt = (syncPnt+1)&7;
+                    if(!resync){
+                        resync=1;
+                        qDebug() << "Resyncing";
+                    }
                 }
-            }
-            else{
-                fifo->enqueue(*mem_block);
-                if(resync){
-                    resync=0;
-                    qDebug() << "Synced";
+                else{
+                    fifo->enqueue(*mem_block);
+                    if(resync){
+                        resync=0;
+                        qDebug() << "Synced";
+                    }
                 }
+                mem_block++;
             }
-        mem_block++;
-        }
-        while(fifo->count() >= (48*ABUFFERS)){
-            for(int i=0; i<(8*ABUFFERS) ;i++)
-                fifo->removeFirst();
-            qDebug() << "Removing" << 8*ABUFFERS*sizeof(union block_t) << "bytes in FIFO to prevent overfill";
-        }
+            while(fifo->count() >= (48*ABUFFERS)){
+                for(int i=0; i<8 ;i++)
+                    fifo->removeFirst(); // oldest
+                qDebug() << "Removing" << 8*sizeof(union block_t) << "bytes in FIFO to prevent overfill";
+            }
+            //512 bytes * 64 = 32 kByte / 8192 words
+            if( fifo->count() >= 8){ //
+                emit dataAvailable();
+                // qDebug()<<"E";
+            }
 
-        if( fifo->count() >= (8*ABUFFERS)){ // Full data struct
-            emit dataAvailable();
-           // qDebug()<<"E";
+            block = (block+1)%BUFFERS;
+            //Set last_actual_length to zero, Only put the data on the FIFO once.
+            last_actual_length=0;
         }
-
-        block = !block;
+        else if(last_actual_length >0)
+            qDebug() <<"Unexpected package length" <<last_actual_length;
     }
 }
 
@@ -109,9 +117,15 @@ void USBbulk::restart_stream(){
     libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamON, sizeof streamON, NULL , 0);
 }
 
+void USBbulk::empty_callback(struct libusb_transfer *transfer){
+   // process = false;
+    last_actual_length = -transfer->actual_length;
+}
+
 void USBbulk::callback(struct libusb_transfer *transfer){
     libusb_submit_transfer(transfer);
     last_actual_length = transfer->actual_length;
+   // process = true;
     //static struct USBmem_t* buffer = (struct USBmem_t*) transfer->buffer;
 }
 void USBbulk::start_stream(){
@@ -119,7 +133,8 @@ void USBbulk::start_stream(){
         testHandleMsg();
         return;
     }
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamON, sizeof streamON, NULL , 0);
+    libusb_fill_bulk_transfer(Out_transfer, handle, XMOS_BULK_EP_OUT , (unsigned char*) &streamON, sizeof streamON, &USBbulk::empty_callback   , nullptr , 0);
+    libusb_submit_transfer(   Out_transfer);
     block=0;
 }
 void USBbulk::stop_stream(){
@@ -127,19 +142,23 @@ void USBbulk::stop_stream(){
         testHandleMsg();
         return;
     }
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &streamOFF, sizeof streamOFF, NULL , 0);
+     libusb_fill_bulk_transfer(Out_transfer, handle, XMOS_BULK_EP_OUT , (unsigned char*) &streamOFF, sizeof streamOFF, &USBbulk::empty_callback , nullptr, 0);
+     libusb_submit_transfer(   Out_transfer);
 }
 
 void USBbulk::sendPIsettings(PI_section_t &PIsection , int channel){
     struct USB_PIsection_t pi;
     pi.channel =channel;
-    pi.section.Fc = PIsection.Fc;
-    pi.section.Gain = PIsection.Gain;
+    memcpy(&pi.section , &PIsection , sizeof(PI_section_t));
     if(handle == nullptr){
         testHandleMsg();
         return;
     }
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &pi, sizeof(pi), NULL , 0);
+
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &pi, sizeof(pi), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+
+    //libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &pi, sizeof(pi), NULL , 0);
     //qDebug()<<"Sent PI settings with len=" <<sizeof(pi) << "bytes. Ch"<< channel <<"Fc="<<pi.section.Fc << "Gain=" << pi.section.Gain;
 }
 
@@ -147,8 +166,10 @@ void USBbulk::sendEQsettings(EQ_section_t &EQ , int channel , int section ){
     struct USB_EQsection_t eq;
     eq.channel = channel;
     eq.section = section;
-    memcpy(&eq.data , &EQ , 10*sizeof(qint32));
-    libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 14*sizeof(qint32), NULL , 0);
+    memcpy(&eq.data , &EQ , 11*sizeof(qint32));
+    //libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 14*sizeof(qint32), NULL , 0);
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 15*sizeof(qint32), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
 }
 
 void USBbulk::testHandleMsg(){

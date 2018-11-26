@@ -26,13 +26,13 @@ struct f_t{
 };
 
 enum type_e{Absolute, Level , LogLog};
-
+float dB(float a , float b);
 
 class FFTworker : public QObject
 {
     Q_OBJECT
 public:
-    explicit FFTworker(QObject *parent = nullptr);
+    explicit FFTworker(float *Xcorr=nullptr , QObject *parent = nullptr);
 
 public slots:
     void calcFFT(struct F_t* X, struct f_t* x , enum type_e type , int index, QVector<int> &v_LUT);
@@ -43,6 +43,7 @@ signals:
 
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
+     float* mls_xcorr;
 
 
 };

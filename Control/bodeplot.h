@@ -7,6 +7,7 @@
 #include <QVector>
 #include "complex.h"
 #include "global_defines.h"
+#include "fftworker.h"
 
 
 QT_CHARTS_USE_NAMESPACE

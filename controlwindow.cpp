@@ -29,9 +29,7 @@ controlwindow::controlwindow(USBbulk* usb , QWidget *parent ) : QMainWindow(pare
     connect(flux->EQ[i] ,   &EQsection::sendEQsettings , usb , &USBbulk::sendEQsettings);
     }
 
-  torque->PI->updateSettingsAndPlot(true);
-  flux->PI->updateSettingsAndPlot(true);
-}
+ }
 
 controlwindow::~controlwindow(){
 

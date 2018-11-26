@@ -19,10 +19,11 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     gaugeWindow = new GaugeWindow(this);
     fifo = fifo_ptr;
 
+    calcMLS();
 
     for(int i=0; i<FFT_N ; i++){
         fft_thread[i] = new QThread();
-        fft[i] = new FFTworker();
+        fft[i] = new FFTworker(MLScorrLevel , this);
         fft[i]->moveToThread(fft_thread[i]);
     }
     I_chart =   new QChart();
@@ -34,7 +35,7 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
-    FFT_chart->setTitle(QString("FFT with size %1").arg(FFT_LEN));
+    FFT_chart->setTitle(QString("FFT with size %1 of uncorrelated MLS").arg(FFT_LEN));
     for(int i=IA; i<=Torque ; i++){
         QPointF pnt;
         list[i].reserve(128/DECIMATE*ABUFFERS);
@@ -79,11 +80,11 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     I_chart-> axisX()->setTitleText("Shaft angle Deg°");
     I_chart-> axisY()->setTitleText("Current [A]");
     I_chart-> axisX()->setRange(0 , 360);
-    I_chart-> axisY()->setRange(-2.0 , 2.0);
+    I_chart-> axisY()->setRange(-5 , 5);
 
     PI_chart->createDefaultAxes();
     PI_chart-> axisX()->setTitleText("Shaft angle Deg°");
-    PI_chart-> axisY()->setRange(-0.5 , 1.5);
+    PI_chart-> axisY()->setRange(-5 , 5);
     PI_chart-> axisX()->setRange(0 , 360);
 
 
@@ -93,19 +94,13 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
     axisX->setLabelFormat("%.0f");
     axisY->setLabelFormat("%.0f");
     axisX->setRange(floor(fs/FFT_LEN) , ceil(fs/2));
-    axisY->setRange(-20.0 , 80.0);
+    axisY->setRange(-80 , 20);
     axisX->setMinorTickCount(8);// 2:9 20:10:90
     axisY->setTickCount(6); // 20dB
-
     axisY->setMinorTickCount(3);
-
     axisX->setTitleText("Frequency [Hz]");
     axisY->setTitleText("Level [dB]");
-
-
     axisY->setTickType(QValueAxis::TickType::TicksFixed);
-
-
     FFT_chart->addAxis( axisX , Qt::AlignBottom);
     FFT_chart->addAxis( axisY , Qt::AlignLeft);
     FFTseries[0].attachAxis(axisX);
@@ -173,8 +168,8 @@ void MainWindow::update_FFT(int index , enum type_e type){
 }
 
 void MainWindow::reset_states(){
-    for(int i=0; i < FFT_N ; i++)
-        fft_pos[i]=0;
+    fftIndexA=0;
+    fftIndexC=0;
     FFT_wr_buff=0;
     FFT_rd_buff=0;
     updates=0;
@@ -207,90 +202,96 @@ void MainWindow::parse_angle(){
 void::MainWindow::parse_lowspeed(){
     union block_t block = fifo->dequeue();
     float temp = block.lowSpeed.lowspeed.temp;
+    if(expectedIndex != block.lowSpeed.index){
+        qDebug()<< expectedIndex << block.lowSpeed.index << "Diff=" << expectedIndex - block.lowSpeed.index;
+        expectedIndex = block.lowSpeed.index;
+    }
+    expectedIndex++;
     //qDebug()<<temp;
     gaugeWindow->setTemp(temp);
 }
 
-void MainWindow::parse(enum plots_e plot , enum FFT_e fft_plot , int &index , bool parseFFT , qreal scale){
-    if(fifo->size()==0)
-        return;
+int MainWindow::parse(enum plots_e plot , qreal scale, int index){
     union block_t block = fifo->dequeue();
     int readPos = 0;
-    if(parseFFT){
+    switch(plot){
+    case IA:
         for(int i=0; i<(128/DECIMATE) ; i++){
             int sum=0;
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block.samples[readPos++];
                 sum += val;
-                fft_data[fft_plot][FFT_wr_buff].sample[fft_pos[fft_plot]++] = val;
+                fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
             }
-            qreal scaled = sum*scale;
-            list[plot][index++].setY(scaled);
-
-            //peak hold
-            current[plot].i = abs(scaled);
-            if(current[plot].i >= current[plot].peak)
-                current[plot].peak = current[plot].i;
-            else
-                current[plot].peak -=2*(dt/1000); //[A/s]
-            current[plot].RMS = filter(scaled*scaled , plot);
+            list[IA][index++].setY(sum*scale);
         }
-    }
-    else{
+        break;
+   case IC:
         for(int i=0; i<(128/DECIMATE) ; i++){
             int sum=0;
             for( int d=0; d<DECIMATE ; d++ ){
-                sum += block.samples[readPos++];
+                qint32 val = block.samples[readPos++];
+                sum += val;
+                fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
-            list[plot][index++].setY(sum*scale);
-        }
-    }
-}
-
-
-void MainWindow::update_data(){
-   //qDebug("R");
-    while(fifo->count() >= 8*ABUFFERS){
-        for(int i=0; i<len ; i++)
-            listIndex[i]=0;
-
-        for(int j=0; j<ABUFFERS ; j++){
-            parse_lowspeed();
-            parse(IA , FFT_IA , listIndex[IA] , true , scale.Current);
-            parse(IC , FFT_IC , listIndex[IC] , true , scale.Current);
-            parse_angle();
-            parse(Torque , OFF, listIndex[Torque] , false , scale.Torque);
-            parse(Flux , OFF, listIndex[Flux] , false , scale.Flux);
-            fifo->removeFirst();//U
-            fifo->removeFirst();//ang
-        }
-        for(int i=0 ; i<(8192/DECIMATE) ; i++)
-            list[IB][i].setY(-list[IA][i].y() - list[IC][i].y() );
-        for(int i=0; i<(128/DECIMATE) ; i++){ // A already
-            qreal Ib = list[IA][i].y() + list[IC][i].y();
-            current[IB].RMS = filter(Ib*Ib , IB);
-            float absIb= abs(Ib);
+            qreal scaled = sum*scale;
+            qreal ib = list[IA][index].y() - scale;
+            list[IC][index].setY(scaled);
+            list[IB][index++].setY(ib);
+            current[IB].RMS = filter(ib*ib , IB);
+            float absIb= abs(ib);
             if(absIb >  current[IB].peak)
                 current[IB].peak = absIb;
             else
                 current[IB].peak -=2*(dt/1000);
         }
+        break;
+    case Torque:
+    case Flux:
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int sum=0;
+            for( int d=0; d<DECIMATE ; d++ )
+                sum += block.samples[readPos++];
+            list[plot][index++].setY(sum*scale);
+        }
+        break;
+     default:
+        break;
+    }
+    return index;
+}
 
-        series[IA].replace(list[IA]);
-        series[IB].replace(list[IB]);
-        series[IC].replace(list[IC]);
-        series[Torque].replace(list[Torque]);
-        series[Flux].replace(list[Flux]);
-        gaugeWindow->setcurrentGauge(current);
-        float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
-        //qDebug()<<rpm;
-        gaugeWindow->setShaftSpeed(rpm);
-        if(fft_pos[0] >= FFT_LEN ){
-            for(int i=0; i < FFT_N ; i++)
-                fft_pos[i]=0;
-            FFT_wr_buff=!FFT_wr_buff;
-            for(int i=0; i< FFT_N ; i++)
-                fft[i]->calcFFT(&FFT[i] , &fft_data[i][FFT_rd_buff] , LogLog , i , v_LUT);
+
+
+void MainWindow::update_data(){
+    while( fifo->count() >= 8){
+        parse_lowspeed();
+        parse(IA , scale.Current , listIndex);
+        parse(IC , scale.Current , listIndex);
+        parse_angle();
+        parse(Torque , scale.Torque , listIndex);
+        listIndex = parse(Flux   , scale.Flux , listIndex);
+        fifo->removeFirst();//U
+        fifo->removeFirst();//ang
+        if(listIndex == 128/DECIMATE*ABUFFERS){
+            listIndex=0;
+            series[IA].replace(list[IA]);
+            series[IB].replace(list[IB]);
+            series[IC].replace(list[IC]);
+            series[Torque].replace(list[Torque]);
+            series[Flux].replace(list[Flux]);
+            gaugeWindow->setcurrentGauge(current);
+            float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
+            //qDebug()<<rpm;
+            gaugeWindow->setShaftSpeed(rpm);
+            if(fftIndexA >= FFT_LEN ){
+                fftIndexA = 0;
+                fftIndexC = 0;
+                FFT_wr_buff = !FFT_wr_buff;
+                fft[FFT_IA] -> calcFFT(&FFT[FFT_IA] , &fft_data[FFT_IA][FFT_rd_buff] , LogLog , FFT_IA , v_LUT);
+                fft[FFT_IC] -> calcFFT(&FFT[FFT_IC] , &fft_data[FFT_IC][FFT_rd_buff] , LogLog , FFT_IC , v_LUT);
+
+            }
         }
     }//while
 }
@@ -329,6 +330,24 @@ void MainWindow::calcLogScale(){
             }
         }
     }
+}
+
+void MainWindow::calcMLS(){
+//
+    //calculate MLS seq.
+    quint32 lfsr=1 ,lsb;
+    for(int i=0; i<FFT_LEN-1 ; i++){
+        lsb = lfsr & 1;            /* Get LSB (i.e., the output bit). */
+        lfsr >>= 1;                /* Shift register */
+        if (lsb)                   /* If the output bit is 1, apply toggle mask. */
+            lfsr ^= 0x20400;
+        mls[i]= lsb;
+    }
+    mls[FFT_LEN-1]= 0;
+    fft_object.do_fft((float*)&MLS , mls);
+    float offset = dB(MLS.binReal[0] , MLS.binImag[0])-48;
+    for(int i=0; i<FFT_LEN/2-1 ; i++)
+        MLScorrLevel[i] = dB(MLS.binReal[i] , MLS.binImag[i])-offset;
 }
 
 MainWindow::~MainWindow()

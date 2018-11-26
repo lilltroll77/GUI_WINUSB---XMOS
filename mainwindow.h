@@ -51,10 +51,11 @@ public slots:
 private:
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
-    void parse(enum plots_e plot , enum FFT_e fft_plot , int &index, bool parseFFT , qreal scale);
+    int parse(enum plots_e plot , qreal scale, int index);
     void parse_angle();
     void parse_lowspeed();
     void reset_states(void);
+    void calcMLS();
     Ui::MainWindow *ui;
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
@@ -74,9 +75,9 @@ private:
     QGroupBox *box;
     scale_t scale;
     int updates=0;
-    int listIndex[len];
+    int listIndex=0;
     int writeCopy=0;
-    int fft_pos[FFT_N]={0};
+    int fftIndexA=0 , fftIndexC=0;
      struct f_t fft_data[2][FFT_N];
     int FFT_wr_buff=0;
     int FFT_rd_buff=0;
@@ -88,6 +89,11 @@ private:
     GaugeWindow* gaugeWindow;
     struct I_t current[3]={{0}};
     qreal Xold[3]={0} , Yold[3]={0};
+    float MLScorrLevel[FFT_LEN/2];
+    float mls[FFT_LEN];
+    struct F_t MLS;
+    ffft::FFTRealFixLen <FFT_POW> fft_object;
+    quint32 expectedIndex=0;
 };
 
 #endif // MAINWINDOW_H

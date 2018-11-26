@@ -23,7 +23,7 @@ typedef struct{
         quint32 B2f;
         quint32 A1f;
         quint32 A2f;
-        quint32 align;
+        quint32 shift;
         double B0;
         double B1;
         double B2;
@@ -34,11 +34,8 @@ typedef struct{
 typedef struct{
     float Fc;
     float Gain;
-    quint32 B0f;
-    quint32 B1f;
-    quint32 B2f;
-    quint32 A1f;
-    quint32 A2f;
+    quint32 p;
+    quint32 i;
 }PI_section_t;
 
 

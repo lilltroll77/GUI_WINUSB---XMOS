@@ -58,6 +58,8 @@ void calc_PI(PI_section_t &pi , double Bcoef[3] , double Acoef[2] ){
     //Bilinear transformation of T(s) = (s + 2*pi*fc)/s
     double k =M_PI/2 * pi.Fc/FS;
     double a = pow(10, pi.Gain/20);
+    pi.p = a*pow(2,22);
+    pi.i = k*pow(2,34);
     Acoef[0] = -1;
     Acoef[1] = 0;
     Bcoef[0] = a*(k+1);
@@ -92,6 +94,12 @@ void calcFilt(EQ_section_t &EQ){
         EQ.B2 = 0;
         EQ.A1 = 0;
         EQ.A2 = 0;
+        EQ.shift = 30;
+        EQ.A1f = 0;
+        EQ.A2f = 0;
+        EQ.B0f = pow(2,EQ.shift);
+        EQ.B1f = 0;
+        EQ.B2f = 0;
         return;
     }
 
@@ -236,7 +244,20 @@ void calcFilt(EQ_section_t &EQ){
     EQ.B0 = b0/a0;
     EQ.B1 = b1/a0;
     EQ.B2 = b2/a0;
-    const double scale = pow(2 , 30);
+    double bmax=0;
+    bmax = abs(EQ.B0);
+    if(abs(EQ.B1) >=bmax)
+        bmax = abs(EQ.B1);
+    if(abs(EQ.B2) >=bmax)
+        bmax = abs(EQ.B2);
+
+    if(bmax<2)
+      EQ.shift = 30;
+    else if(bmax<4)
+       EQ.shift = 29;
+    else
+       EQ.shift = 28;
+    double scale = pow(2,EQ.shift);
     EQ.A1f = round(EQ.A1 * scale);
     EQ.A2f = round(EQ.A2 * scale);
     EQ.B0f = round(EQ.B0 * scale);

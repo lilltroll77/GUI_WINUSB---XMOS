@@ -3,6 +3,8 @@
 #include "data_struct.h"
 #include "usbbulk.h"
 #include "controlwindow.h"
+#include <stdint.h>
+#include <QTextStream>
 
 int main(int argc, char *argv[])
 {
@@ -13,14 +15,11 @@ int main(int argc, char *argv[])
     USBbulk usb(w , fifo);
     controlwindow control(&usb);
 
-
-
-
-
     //QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();
     usb.start(QThread::TimeCriticalPriority);
     control.show();
     return a.exec();
+
 }
 

@@ -14,7 +14,7 @@ PISection::PISection(QWidget *parent, int ID):
       knob_fc = new Knob(logScale , this);
       knob_fc-> setTitle("Fc [Hz]");
       knob_fc-> setKnobColor("rgb(255, 127, 127)");
-      knob_fc->setRange( 2 , 5000, 100);
+      knob_fc->setRange( 2 , 20000, 100);
       knob_fc->setDecimals(0);
       knob_fc->setSingleStep(1);
       knob_fc->setValue(DEFAULT_FC);
@@ -50,7 +50,7 @@ PISection::PISection(QWidget *parent, int ID):
       topLayout->addWidget(groupBox);
       topLayout->setContentsMargins(3,10,3,10);
       this->setLayout(topLayout);
-
+      updateSettingsAndPlot(false);
 
   }
 
@@ -101,8 +101,8 @@ PISection::PISection(QWidget *parent, int ID):
 
 
   void::PISection::updateSettingsAndPlot(bool updatePlot){
-      //PIsettings.Fc   = knob_fc->Value();
-      //PIsettings.Gain = knob_gain->Value();
+      PIsettings.Fc   = knob_fc->Value();
+      PIsettings.Gain = knob_gain->Value();
       calc_PI(PIsettings , B , A );
       if(updatePlot)
         emit PIchanged(B,A , channelID); //Signal to parent its time to update plot

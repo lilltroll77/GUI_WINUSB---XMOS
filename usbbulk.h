@@ -11,8 +11,6 @@
 #include "mainwindow.h"
 #include "calcfilt.h"
 
-
-
 class USBbulk : public QThread {
     Q_OBJECT
 public:
@@ -33,6 +31,7 @@ public slots:
 
 private:
     enum message_e{streamIN , PIsection , EQsection};
+
     struct USB_PIsection_t{
         int header = USBbulk::PIsection;
         int channel;
@@ -53,9 +52,11 @@ private:
     };
     void run();
     static void callback(struct libusb_transfer *transfer);
+    static void empty_callback(struct libusb_transfer *transfer);
     void testHandleMsg();
     libusb_device **list;
     struct libusb_transfer* In_transfer[BUFFERS] = {nullptr};
+    struct libusb_transfer* Out_transfer={nullptr};
     int err = 0;
     struct USBmem_t mem[BUFFERS][ABUFFERS]={0};
     struct libusb_device_handle *handle = NULL;
@@ -70,7 +71,6 @@ private:
     //struct USBmem_t* buffer;
     const quint64 pi=3141592543358979324ull;
     QQueue<union block_t>* fifo;
-
 
 
 };

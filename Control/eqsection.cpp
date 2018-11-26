@@ -75,6 +75,7 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
       topLayout->addWidget(groupBox);
       topLayout->setContentsMargins(3,5,3,5);
       this->setLayout(topLayout);
+      updateSettingsAndPlot(false);
   }
 
 

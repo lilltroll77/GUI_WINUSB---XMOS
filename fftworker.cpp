@@ -14,8 +14,9 @@ float dB(float a , float b){
               min-offset;
 }
 
-FFTworker::FFTworker(QObject *parent) : QObject(parent)
+FFTworker::FFTworker(float* Xcorr, QObject *parent) : QObject(parent)
 {
+    mls_xcorr = Xcorr;
 }
 
 void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, QVector<int> &v_LUT) {
@@ -41,7 +42,7 @@ void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, Q
                 float max=-1000 , min=1000 , level;
                 for(int k=i; k< width+i ; k++){
                     if(k < FFT_LEN/2){
-                        level=dB(X->binReal[k] , X->binImag[k]);
+                        level=dB(X->binReal[k] , X->binImag[k])- mls_xcorr[k];
                         if( level > max)
                             max = level;
                         if( level < min)

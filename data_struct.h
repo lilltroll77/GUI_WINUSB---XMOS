@@ -39,6 +39,7 @@ struct blockC_t{
    struct lowspeed_t lowspeed;
 };
 
+//512 bytes
 union block_t{
     blockC_t lowSpeed;
     qint32 samples[PKG_SIZE/4];

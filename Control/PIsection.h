@@ -9,7 +9,7 @@
 #include "knob.h"
 #include "calcfilt.h"
 
-#define DEFAULT_GAIN 0
+#define DEFAULT_GAIN -50
 #define DEFAULT_FILTER PI
 
 class PISection : public QWidget
