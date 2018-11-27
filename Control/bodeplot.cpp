@@ -70,7 +70,7 @@ void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
 }
 
 void bodeplot::EQchanged(double B[3] , double A[2], float fc , int channel , int section){
-    qDebug() << "EQ" << channel << section;
+    //qDebug() << "EQ" << channel << section;
     section++; //Ugly fix!
     freqz(B,A, fc, H[channel][section]);
     calcLevel(channel);

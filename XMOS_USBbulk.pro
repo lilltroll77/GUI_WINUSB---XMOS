@@ -44,7 +44,8 @@ SOURCES += \
         Control/eqchannel.cpp \
         controlwindow.cpp \
         Control/bodeplot.cpp \
-        transform.cpp
+        transform.cpp \
+        fifo.cpp
 
 
 HEADERS += \
@@ -72,7 +73,8 @@ HEADERS += \
         Control/bodeplot.h \
         transform.h \
         global_enums.h \
-        global_defines.h
+        global_defines.h \
+        fifo.h
 
 
 #FORMS += \

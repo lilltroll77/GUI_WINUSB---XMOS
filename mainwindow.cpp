@@ -12,12 +12,12 @@
 #include "math.h"
 
 
-MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
+MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     QMainWindow(parent)
     //,ui(new Ui::MainWindow)
 {
     gaugeWindow = new GaugeWindow(this);
-    fifo = fifo_ptr;
+    Fifo = fifo_ptr;
 
     calcMLS();
 
@@ -35,7 +35,7 @@ MainWindow::MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent) :
 
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
-    FFT_chart->setTitle(QString("FFT with size %1 of uncorrelated MLS").arg(FFT_LEN));
+    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS").arg(FFT_LEN));
     for(int i=IA; i<=Torque ; i++){
         QPointF pnt;
         list[i].reserve(128/DECIMATE*ABUFFERS);
@@ -193,18 +193,18 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
 }
 
 void MainWindow::parse_angle(){
-    union block_t block = fifo->dequeue();
+    union block_t* block = Fifo->read();
     for(int i=0; i<128 ; i++)
-        angle[angle_pos++] = block.samples[i]*scale.QE;
+        angle[angle_pos++] = block->samples[i]*scale.QE;
     angle_pos &=8191;
 }
 
 void::MainWindow::parse_lowspeed(){
-    union block_t block = fifo->dequeue();
-    float temp = block.lowSpeed.lowspeed.temp;
-    if(expectedIndex != block.lowSpeed.index){
-        qDebug()<< expectedIndex << block.lowSpeed.index << "Diff=" << expectedIndex - block.lowSpeed.index;
-        expectedIndex = block.lowSpeed.index;
+    union block_t* block = Fifo->read();
+    float temp = block->lowSpeed.lowspeed.temp;
+    if(expectedIndex != block->lowSpeed.index){
+        qDebug()<< expectedIndex << block->lowSpeed.index << "Diff=" << expectedIndex - block->lowSpeed.index;
+        expectedIndex = block->lowSpeed.index;
     }
     expectedIndex++;
     //qDebug()<<temp;
@@ -212,14 +212,14 @@ void::MainWindow::parse_lowspeed(){
 }
 
 int MainWindow::parse(enum plots_e plot , qreal scale, int index){
-    union block_t block = fifo->dequeue();
+    union block_t* block = Fifo->read();
     int readPos = 0;
     switch(plot){
     case IA:
         for(int i=0; i<(128/DECIMATE) ; i++){
             int sum=0;
             for( int d=0; d<DECIMATE ; d++ ){
-                qint32 val = block.samples[readPos++];
+                qint32 val = block->samples[readPos++];
                 sum += val;
                 fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
             }
@@ -230,7 +230,7 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
         for(int i=0; i<(128/DECIMATE) ; i++){
             int sum=0;
             for( int d=0; d<DECIMATE ; d++ ){
-                qint32 val = block.samples[readPos++];
+                qint32 val = block->samples[readPos++];
                 sum += val;
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
@@ -251,7 +251,7 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
         for(int i=0; i<(128/DECIMATE) ; i++){
             int sum=0;
             for( int d=0; d<DECIMATE ; d++ )
-                sum += block.samples[readPos++];
+                sum += block->samples[readPos++];
             list[plot][index++].setY(sum*scale);
         }
         break;
@@ -264,15 +264,16 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
 
 
 void MainWindow::update_data(){
-    while( fifo->count() >= 8){
-        parse_lowspeed();
-        parse(IA , scale.Current , listIndex);
-        parse(IC , scale.Current , listIndex);
-        parse_angle();
-        parse(Torque , scale.Torque , listIndex);
-        listIndex = parse(Flux   , scale.Flux , listIndex);
-        fifo->removeFirst();//U
-        fifo->removeFirst();//ang
+    while( Fifo->getSize() >= 8){
+        Fifo->checkSize();
+/*1*/   parse_lowspeed();
+/*2*/   parse(IA , scale.Current , listIndex); //2
+/*3*/   parse(IC , scale.Current , listIndex);
+/*4*/   parse_angle();
+/*5*/   parse(Torque , scale.Torque , listIndex);
+/*6*/   listIndex = parse(Flux   , scale.Flux , listIndex);
+/*7*/   Fifo->read();
+/*8*/   Fifo->read();
         if(listIndex == 128/DECIMATE*ABUFFERS){
             listIndex=0;
             series[IA].replace(list[IA]);
@@ -282,7 +283,7 @@ void MainWindow::update_data(){
             series[Flux].replace(list[Flux]);
             gaugeWindow->setcurrentGauge(current);
             float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
-            //qDebug()<<rpm;
+            //qDebug()<<fftIndexA;
             gaugeWindow->setShaftSpeed(rpm);
             if(fftIndexA >= FFT_LEN ){
                 fftIndexA = 0;

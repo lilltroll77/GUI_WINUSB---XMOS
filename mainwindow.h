@@ -12,9 +12,9 @@
 #include "ffft/FFTRealFixLen.h"
 #include "fftworker.h"
 #include "Gauges/gaugewindow.h"
-#include "global_enums.h"
-#include "global_defines.h"
-
+//#include "global_enums.h"
+//#include "global_defines.h"
+#include "fifo.h"
 
 QT_CHARTS_USE_NAMESPACE
 
@@ -35,7 +35,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QQueue<union block_t>* fifo_ptr , QWidget *parent = nullptr);
+    explicit MainWindow(fifo* fifo_ptr, QWidget *parent = nullptr);
     QVector<int> v_LUT;
     ~MainWindow();
 
@@ -85,7 +85,8 @@ private:
     FFTworker* fft[FFT_N];
     F_t FFT[FFT_N];
     QList<QPointF> freq;
-    QQueue<union block_t>* fifo;
+    //QQueue<union block_t>* fifo;
+    fifo* Fifo;
     GaugeWindow* gaugeWindow;
     struct I_t current[3]={{0}};
     qreal Xold[3]={0} , Yold[3]={0};

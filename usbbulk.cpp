@@ -6,10 +6,10 @@
 static int last_actual_length;
 
 /// ! Not QmainWindow!!
-USBbulk::USBbulk(MainWindow* w , QQueue<union block_t>* fifo_ptr){
+USBbulk::USBbulk(MainWindow* w , fifo *fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
     connect(this, &USBbulk::sendWarning   , w , &MainWindow::show_Warning);
-    fifo= fifo_ptr;
+    Fifo= fifo_ptr;
 }
 
 void USBbulk::run(){
@@ -77,7 +77,7 @@ void USBbulk::run(){
                     }
                 }
                 else{
-                    fifo->enqueue(*mem_block);
+                    Fifo->write(mem_block);
                     if(resync){
                         resync=0;
                         qDebug() << "Synced";
@@ -85,15 +85,8 @@ void USBbulk::run(){
                 }
                 mem_block++;
             }
-            while(fifo->count() >= (48*ABUFFERS)){
-                for(int i=0; i<8 ;i++)
-                    fifo->removeFirst(); // oldest
-                qDebug() << "Removing" << 8*sizeof(union block_t) << "bytes in FIFO to prevent overfill";
-            }
-            //512 bytes * 64 = 32 kByte / 8192 words
-            if( fifo->count() >= 8){ //
+            if( Fifo->getSize() >= 8){ //
                 emit dataAvailable();
-                // qDebug()<<"E";
             }
 
             block = (block+1)%BUFFERS;

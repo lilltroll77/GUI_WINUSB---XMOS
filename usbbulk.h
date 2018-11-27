@@ -2,7 +2,6 @@
 #define USBBULK_H
 #include <QObject>
 #include <QThread>
-#include <QQueue>
 #include <QMainwindow>
 #include "data_struct.h"
 #include "libusb.h"
@@ -10,11 +9,12 @@
 #include "global_defines.h"
 #include "mainwindow.h"
 #include "calcfilt.h"
+#include "fifo.h"
 
 class USBbulk : public QThread {
     Q_OBJECT
 public:
-    USBbulk(MainWindow* w, QQueue<union block_t> *fifo_ptr);
+    USBbulk(MainWindow* w, fifo* Fifo);
     ~USBbulk();
 
 signals:
@@ -70,7 +70,7 @@ private:
     const int PID=0x00da;
     //struct USBmem_t* buffer;
     const quint64 pi=3141592543358979324ull;
-    QQueue<union block_t>* fifo;
+    fifo* Fifo;
 
 
 };

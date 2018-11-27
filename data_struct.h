@@ -7,6 +7,8 @@
 //sizeof(struct DSPmem_t)
 
 
+#include "global_defines.h"
+
 struct lowspeed_t{
     float temp;
     qint32 reserved1; // Replace with real signal
@@ -64,6 +66,7 @@ struct USBmem_t{
     struct midspeed_vecotr_t mid;
     struct hispeed_vector_t fast;
 };
+
 
 
 
