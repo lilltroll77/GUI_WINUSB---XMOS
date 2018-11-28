@@ -199,7 +199,7 @@ void MainWindow::parse_angle(){
     angle_pos &=8191;
 }
 
-void::MainWindow::parse_lowspeed(){
+unsigned::MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
     float temp = block->lowSpeed.lowspeed.temp;
     if(expectedIndex != block->lowSpeed.index){
@@ -209,6 +209,7 @@ void::MainWindow::parse_lowspeed(){
     expectedIndex++;
     //qDebug()<<temp;
     gaugeWindow->setTemp(temp);
+    return block->lowSpeed.index & (FFT_LEN/128-1);
 }
 
 int MainWindow::parse(enum plots_e plot , qreal scale, int index){
@@ -266,7 +267,7 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
 void MainWindow::update_data(){
     while( Fifo->getSize() >= 8){
         Fifo->checkSize();
-/*1*/   parse_lowspeed();
+/*1*/   unsigned block = parse_lowspeed();
 /*2*/   parse(IA , scale.Current , listIndex); //2
 /*3*/   parse(IC , scale.Current , listIndex);
 /*4*/   parse_angle();
@@ -283,17 +284,21 @@ void MainWindow::update_data(){
             series[Flux].replace(list[Flux]);
             gaugeWindow->setcurrentGauge(current);
             float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
-            //qDebug()<<fftIndexA;
             gaugeWindow->setShaftSpeed(rpm);
-            if(fftIndexA >= FFT_LEN ){
+        }
+            //qDebug()<<block;
+
+            if( block==0 | fftIndexA>= FFT_LEN){
                 fftIndexA = 0;
                 fftIndexC = 0;
                 FFT_wr_buff = !FFT_wr_buff;
-                fft[FFT_IA] -> calcFFT(&FFT[FFT_IA] , &fft_data[FFT_IA][FFT_rd_buff] , LogLog , FFT_IA , v_LUT);
-                fft[FFT_IC] -> calcFFT(&FFT[FFT_IC] , &fft_data[FFT_IC][FFT_rd_buff] , LogLog , FFT_IC , v_LUT);
+                if(block ==0){
+                    fft[FFT_IA] -> calcFFT(&FFT[FFT_IA] , &fft_data[FFT_IA][FFT_rd_buff] , LogLog , FFT_IA , v_LUT);
+                    fft[FFT_IC] -> calcFFT(&FFT[FFT_IC] , &fft_data[FFT_IC][FFT_rd_buff] , LogLog , FFT_IC , v_LUT);
+                }
 
             }
-        }
+
     }//while
 }
 

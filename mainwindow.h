@@ -53,7 +53,7 @@ private:
     float filter(qreal x , enum plots_e plot );
     int parse(enum plots_e plot , qreal scale, int index);
     void parse_angle();
-    void parse_lowspeed();
+    unsigned parse_lowspeed();
     void reset_states(void);
     void calcMLS();
     Ui::MainWindow *ui;
