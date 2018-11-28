@@ -19,6 +19,8 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     gaugeWindow = new GaugeWindow(this);
     Fifo = fifo_ptr;
 
+
+
     calcMLS();
 
     for(int i=0; i<FFT_N ; i++){
@@ -286,18 +288,16 @@ void MainWindow::update_data(){
             float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
             gaugeWindow->setShaftSpeed(rpm);
         }
-            //qDebug()<<block;
-
-            if( block==0 | fftIndexA>= FFT_LEN){
-                fftIndexA = 0;
-                fftIndexC = 0;
+        if( (block==0) | (fftIndexA>= FFT_LEN)){
+            fftIndexA = 0;
+            fftIndexC = 0;
+            if(block ==0){
+                fft[FFT_IA] -> calcFFT(&FFT[FFT_IA] , &fft_data[FFT_IA][FFT_rd_buff] , LogLog , FFT_IA , v_LUT);
+                fft[FFT_IC] -> calcFFT(&FFT[FFT_IC] , &fft_data[FFT_IC][FFT_rd_buff] , LogLog , FFT_IC , v_LUT);
                 FFT_wr_buff = !FFT_wr_buff;
-                if(block ==0){
-                    fft[FFT_IA] -> calcFFT(&FFT[FFT_IA] , &fft_data[FFT_IA][FFT_rd_buff] , LogLog , FFT_IA , v_LUT);
-                    fft[FFT_IC] -> calcFFT(&FFT[FFT_IC] , &fft_data[FFT_IC][FFT_rd_buff] , LogLog , FFT_IC , v_LUT);
-                }
-
             }
+            // else data out of sync.
+        }
 
     }//while
 }
