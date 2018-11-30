@@ -18,6 +18,9 @@ PISection::PISection(QWidget *parent, int ID):
       knob_fc->setDecimals(0);
       knob_fc->setSingleStep(1);
       knob_fc->setValue(DEFAULT_FC);
+
+      resetI = new QPushButton("Reset I" , this);
+      resetI->setToolTip("Reset the PI-integrator to zero");
       knob_gain = new Knob(linScale , this);
       knob_gain-> setTitle("Gain [dB]");
       knob_gain-> setKnobColor("rgb(127, 127, 255)");
@@ -26,7 +29,9 @@ PISection::PISection(QWidget *parent, int ID):
       knob_gain->setSingleStep(0.1);
       knob_gain->setValue(DEFAULT_GAIN);
 
+      layout->addWidget(resetI, Qt::AlignHCenter);
       layout->addWidget(knob_fc);
+      layout->addSpacing(5);
       layout->addWidget(knob_gain);
       layout->setMargin(0);
       layout->setSpacing(0);
@@ -45,12 +50,12 @@ PISection::PISection(QWidget *parent, int ID):
 
       connect(knob_gain , SIGNAL(valueChanged(double)) , this ,   SLOT(slot_gainChanged(double)));
       connect(knob_fc ,   SIGNAL(valueChanged(double)) , this ,   SLOT(slot_fcChanged(double)));
-
+      connect(resetI  ,   SIGNAL(pressed())          , this ,   SLOT(slot_reset()));
 
       topLayout->addWidget(groupBox);
       topLayout->setContentsMargins(3,10,3,10);
       this->setLayout(topLayout);
-      updateSettingsAndPlot(false);
+
 
   }
 
@@ -140,6 +145,11 @@ PISection::PISection(QWidget *parent, int ID):
   void PISection::slot_activeEQChanged(bool state){
   //
 
+  }
+
+  void PISection::slot_reset(){
+      emit resetIntegrator(channelID);
+      //qDebug() << "Emitted resetIntegrator" << channelID;
   }
 
   PISection::~PISection()

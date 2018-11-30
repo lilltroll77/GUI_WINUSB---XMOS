@@ -18,7 +18,7 @@
 
 QT_CHARTS_USE_NAMESPACE
 
-
+#define MAX_CURRRENT 32
 struct scale_t{
     const qreal QE = 360.0/8192.0;
     const qreal Current = 1.0/8000.0/DECIMATE;
@@ -51,6 +51,7 @@ public slots:
 private:
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
+    void updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot);
     int parse(enum plots_e plot , qreal scale, int index);
     void parse_angle();
     unsigned parse_lowspeed();

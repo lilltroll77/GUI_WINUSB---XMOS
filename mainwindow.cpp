@@ -201,7 +201,7 @@ void MainWindow::parse_angle(){
     angle_pos &=8191;
 }
 
-unsigned::MainWindow::parse_lowspeed(){
+unsigned MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
     float temp = block->lowSpeed.lowspeed.temp;
     if(expectedIndex != block->lowSpeed.index){
@@ -212,6 +212,20 @@ unsigned::MainWindow::parse_lowspeed(){
     //qDebug()<<temp;
     gaugeWindow->setTemp(temp);
     return block->lowSpeed.index & (FFT_LEN/128-1);
+}
+
+void MainWindow::updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot){
+    if(i >MAX_CURRRENT)
+        i = MAX_CURRRENT;
+    else if(i < - MAX_CURRRENT)
+        i = -MAX_CURRRENT;
+    current.RMS = filter(i*i, plot);
+    qreal absI=abs(i);
+    if(absI >  current.peak)
+        current.peak = absI;
+    else
+        current.peak -=2*(dt/1000);
+
 }
 
 int MainWindow::parse(enum plots_e plot , qreal scale, int index){
@@ -226,7 +240,10 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
                 sum += val;
                 fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
             }
-            list[IA][index++].setY(sum*scale);
+            qreal ia = sum*scale;
+            list[IA][index++].setY(ia);
+            updatePhaseCurrent(ia , current[IA] ,  IA);
+
         }
         break;
    case IC:
@@ -237,16 +254,13 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
                 sum += val;
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
-            qreal scaled = sum*scale;
-            qreal ib = list[IA][index].y() - scale;
-            list[IC][index].setY(scaled);
+            qreal ic = sum*scale;
+            qreal ib = list[IA][index].y() - ic;
+            list[IC][index].setY(ic);
             list[IB][index++].setY(ib);
-            current[IB].RMS = filter(ib*ib , IB);
-            float absIb= abs(ib);
-            if(absIb >  current[IB].peak)
-                current[IB].peak = absIb;
-            else
-                current[IB].peak -=2*(dt/1000);
+            updatePhaseCurrent(ib , current[IB] ,  IB);
+            updatePhaseCurrent(ic, current[IC] ,  IC);
+
         }
         break;
     case Torque:

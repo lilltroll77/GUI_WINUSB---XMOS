@@ -152,14 +152,15 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
     }
 
   void::EQsection::updateSettingsAndPlot(bool updatePlot ){
+      EQ.active = groupBox->isChecked();
       if(EQ.active){
           EQ.Fc = knob_fc->Value();
           EQ.Q =  knob_Q->Value();
           EQ.Gain = knob_gain->Value();
           EQ.type = (filterType_t)  filterType->currentIndex();
           update_KnobsEnabled();
-          calcFilt( EQ);
       }
+      calcFilt( EQ);
       if(updatePlot)
         emit EQchanged(&EQ.B0 , &EQ.A1 , EQ.Fc  , channelID , sectionID); //Signal to parent its time to update plot
       emit sendEQsettings(EQ , channelID , sectionID);

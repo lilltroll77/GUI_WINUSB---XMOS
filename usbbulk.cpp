@@ -139,6 +139,13 @@ void USBbulk::stop_stream(){
      libusb_submit_transfer(   Out_transfer);
 }
 
+void::USBbulk::resetPIintegrator(int channel){
+    int data[2] = {resetPI , channel};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+    qDebug() << "reset PI ch"<<channel;
+}
+
 void USBbulk::sendPIsettings(PI_section_t &PIsection , int channel){
     struct USB_PIsection_t pi;
     pi.channel =channel;
