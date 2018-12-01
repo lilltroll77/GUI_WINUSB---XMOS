@@ -11,6 +11,8 @@
 #include "data_struct.h"
 #include "ffft/FFTRealFixLen.h"
 #include "fftworker.h"
+#include <QMenu>
+#include <QMenuBar>
 #include "Gauges/gaugewindow.h"
 //#include "global_enums.h"
 //#include "global_defines.h"
@@ -43,12 +45,15 @@ public:
 signals:
     void restart_stream(void);
     void fuseStatus(bool state);
+    void SignalSource(int source);
 
 public slots:
     void update_data();
     void update_FFT(int index, type_e type);
     void show_Warning(QString str);
     void currentRange(double current);
+    void slot_plotTransferFunction();
+    void slot_plotSensitivity();
 
 
 private:
@@ -61,6 +66,9 @@ private:
     void reset_states(void);
     void calcMLS();
     Ui::MainWindow *ui;
+    QMenu *menuSettings;
+    QMenu *menuHelp;
+    QMenuBar *menuBar;
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
     QList<QPointF> list[len-2];

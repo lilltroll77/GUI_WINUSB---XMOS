@@ -30,10 +30,11 @@ public slots:
      void resetPIintegrator(int channel);
      void sendFuseCurrent(float current);
      void sendFuseReset();
+     void sendSignalSource(int source);
 
 
 private:
-    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus};
+    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource};
 
     struct USB_PIsection_t{
         int header = USBbulk::PIsection;

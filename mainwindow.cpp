@@ -18,6 +18,24 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 {
     gaugeWindow = new GaugeWindow(this);
     Fifo = fifo_ptr;
+    menuBar = new QMenuBar(this);
+    menuSettings = new QMenu("Plot settings" , this);
+    menuHelp     = new QMenu("Help" , this);
+    menuHelp->setDisabled(true);
+    QAction* plotTF = new QAction(this);
+    QAction* plotSens = new QAction(this);
+    plotTF->setText("plot IN->OUT TF");
+    plotTF->setToolTip("plot In->Out transfer function of the system");
+    plotSens->setText("plot Sens.");
+    plotSens->setToolTip("plot the sensitivity of the system");
+    menuSettings->addAction(plotTF);
+    menuSettings->addAction(plotSens);
+    menuBar->addMenu(menuSettings );
+    menuBar->addMenu(menuHelp);
+
+
+    connect(plotTF , SIGNAL(triggered()) , this , SLOT(slot_plotSensitivity()));
+    connect(plotSens , SIGNAL(triggered()) , this , SLOT(slot_plotTransferFunction()));
 
 
 
@@ -37,7 +55,8 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
-    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS").arg(FFT_LEN));
+    //FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS").arg(FFT_LEN));
+    slot_plotTransferFunction();
     for(int i=IA; i<=Torque ; i++){
         QPointF pnt;
         list[i].reserve(128/DECIMATE*ABUFFERS);
@@ -95,7 +114,7 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     QValueAxis* axisY = new QValueAxis();
     axisX->setLabelFormat("%.0f");
     axisY->setLabelFormat("%.0f");
-    axisX->setRange(floor(fs/FFT_LEN) , ceil(fs/2));
+    axisX->setRange(2*fs/FFT_LEN , ceil(fs/2));
     axisY->setRange(-80 , 20);
     axisX->setMinorTickCount(8);// 2:9 20:10:90
     axisY->setTickCount(6); // 20dB
@@ -126,7 +145,9 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
      //box = new QGroupBox("Plots" , this);
      //box->setLayout(layout);
+     this ->setMenuBar(menuBar);
      this -> setCentralWidget(placeholderWidget);
+
      this -> setMinimumWidth(1024);
      this -> setMinimumHeight(768);
      for(int i=0; i<FFT_N ; i++){
@@ -374,6 +395,18 @@ void MainWindow::calcMLS(){
 
 void MainWindow::currentRange(double current){
     I_chart-> axisY()->setRange(-current , current);
+}
+
+void MainWindow::slot_plotSensitivity(){
+    emit SignalSource(1);
+    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting INPUT -> OUTPUT").arg(FFT_LEN));
+
+}
+
+void MainWindow::slot_plotTransferFunction(){
+    emit SignalSource(0);
+    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting OUTPUT sensitivity").arg(FFT_LEN));
+
 }
 
 MainWindow::~MainWindow()

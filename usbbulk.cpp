@@ -9,6 +9,7 @@ static int last_actual_length;
 USBbulk::USBbulk(MainWindow* w , fifo *fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
     connect(this, &USBbulk::sendWarning   , w , &MainWindow::show_Warning);
+    connect(w , &MainWindow::SignalSource , this , &USBbulk::sendSignalSource );
     Fifo= fifo_ptr;
 }
 
@@ -161,8 +162,14 @@ void::USBbulk::sendFuseCurrent(float current){
     //qDebug() << fuse.current;
 }
 
-void::USBbulk::resetPIintegrator(int channel){
-    int data[2] = {resetPI , channel};
+void USBbulk::sendSignalSource(int source){
+    quint32 data[2] = {SignalSource , (quint32) source};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+}
+
+void USBbulk::resetPIintegrator(int channel){
+    quint32 data[2] = {resetPI , (quint32) channel};
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);
     libusb_submit_transfer(    Out_transfer);
     qDebug() << "reset PI ch"<<channel;
