@@ -1,5 +1,6 @@
 #include "gaugewindow.h"
 #include <Qmainwindow>
+#include "mainwindow.h"
 #include <QDebug>
 
 
@@ -28,7 +29,6 @@ GaugeWindow::GaugeWindow(QWidget *parent) :
 
     struct I_t I ={1.0f , 0.0f};
     float T=0 , deg=0 , RPM=0;
-
 
 /*
     while(1){

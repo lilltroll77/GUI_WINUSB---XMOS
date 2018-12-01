@@ -10,6 +10,7 @@ currentGague::currentGague(QWidget *parent , float imax) : QWidget(parent)
         widget = new QcGaugeWidget(parent);
         widget->setMinimumWidth(125);
         widget->setMinimumHeight(125);
+        widget->setToolTip("Decimated peak and RMS current");
 
     // Background
         bkg = widget -> addBackground(98 , DegreeStart , DegreeEnd);

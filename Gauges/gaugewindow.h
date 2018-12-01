@@ -16,6 +16,7 @@ class GaugeWindow : public QMainWindow
 
 public:
     explicit GaugeWindow(QWidget *parent = nullptr);
+    currentGague* currentGauge;
     ~GaugeWindow();
 
 public slots:
@@ -30,7 +31,7 @@ private:
     tempgauge* tempGauge;
     QEgauge* angleGauge;
     tachometer* tachometerGauge;
-    currentGague* currentGauge;
+
 };
 
 #endif // MAINWINDOW_H

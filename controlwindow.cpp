@@ -1,4 +1,5 @@
 #include "controlwindow.h"
+#include "currentgague.h"
 
 
 controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : QMainWindow(parent)
@@ -54,10 +55,12 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
   }
   connect(knob_fuse       , &Knob::valueChanged        , usb  , &USBbulk::sendFuseCurrent);
   connect(knob_fuse       , &Knob::valueChanged        , w    , &MainWindow::currentRange);
+  connect(knob_fuse       , &Knob::valueChanged        , w->gaugeWindow->currentGauge , &currentGague::setScale);
   connect(button_reset    , &QPushButton::clicked      , usb  , &USBbulk::sendFuseReset);
   connect(button_reset    , &QPushButton::clicked      , this , &controlwindow::slot_ResetButtonState);
   connect(w               , &MainWindow::fuseStatus     , this , &controlwindow::slot_ResetButtonState );
   w->currentRange(knob_fuse->Value());
+  w->gaugeWindow->currentGauge->setScale(knob_fuse->Value());
   torque->PI->updateSettingsAndPlot(false);
   flux->PI->updateSettingsAndPlot(false);
 

@@ -37,6 +37,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(fifo* fifo_ptr, QWidget *parent = nullptr);
     QVector<int> v_LUT;
+    GaugeWindow* gaugeWindow;
     ~MainWindow();
 
 signals:
@@ -90,7 +91,6 @@ private:
     QList<QPointF> freq;
     //QQueue<union block_t>* fifo;
     fifo* Fifo;
-    GaugeWindow* gaugeWindow;
     struct I_t current[3]={{0}};
     qreal Xold[3]={0} , Yold[3]={0};
     float MLScorrLevel[FFT_LEN/2];
