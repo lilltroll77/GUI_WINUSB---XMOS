@@ -197,7 +197,7 @@ void calcFilt(EQ_section_t &EQ){
             a1 =  -2*cos(w0);
             a2 =   1 - alpha/A;
             break;
-      case Lead:
+      case Lag:
             w = 2 * M_PI * EQ.Fc;
             b0 = 2*FS + w*sqA;
             b1 = w*sqA - 2*FS;
@@ -206,7 +206,7 @@ void calcFilt(EQ_section_t &EQ){
             a1 = w - 2*FS;
             a2 = 0;
             break;
-      case Lead2:
+      case Lag2:
             b0 =    A*( (A+1) - (A-1)*cos(w0) + 2*sqrt(A)*alpha );
             b1 =  2*A*( (A-1) - (A+1)*cos(w0)                   );
             b2 =    A*( (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha );
@@ -214,7 +214,7 @@ void calcFilt(EQ_section_t &EQ){
             a1 =   -2*( (A-1) + (A+1)*cos(w0)                   );
             a2 =        (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha;
             break;
-      case Lag:
+      case Lead:
             w = 2 * M_PI * EQ.Fc;
             b0 = w - 2*sqA*FS;
             b1 = 2*sqA*FS +w;
@@ -223,7 +223,7 @@ void calcFilt(EQ_section_t &EQ){
             a1 = w - 2*FS;
             a2 = 0;
             break;
-      case Lag2:
+      case Lead2:
             b0 =    A*( (A+1) + (A-1)*cos(w0) + 2*sqrt(A)*alpha );
             b1 = -2*A*( (A-1) + (A+1)*cos(w0)                   );
             b2 =    A*( (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha );

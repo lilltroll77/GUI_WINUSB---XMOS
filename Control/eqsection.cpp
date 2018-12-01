@@ -45,6 +45,8 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
       filterType->addItem(tr("Lag^2 comp"),QVariant(Lag2));
       filterType->addItem(tr("Notch"),QVariant(Notch));
       filterType->addItem(tr("AllPass"),QVariant(AllPass));
+      filterType->addItem(tr("Low pass 1:st"),QVariant(LP1));
+      filterType->addItem(tr("Low pass 2:nd"),QVariant(LP2));
        filterType->setCurrentIndex(EQ.type);
       //filterType->setFixedWidth(110);
       layout->addWidget(filterType);
@@ -213,7 +215,7 @@ EQsection::EQsection(QWidget *parent, int channel , int section):
           else
               knob_gain->setDisabled(false);
 
-          if((EQ.type == Lead) || (EQ.type==Lag))
+          if((EQ.type == Lead) || (EQ.type==Lag) || (EQ.type==LP1))
               knob_Q->setDisabled(true);
           else
               knob_Q->setDisabled(false);
