@@ -35,10 +35,12 @@ struct midspeed_vecotr_t{
 };
 
 struct blockC_t{
-   quint64 checknumber;
+   quint64 checknumber; //1-2
    quint32 version; //3
    quint32 index;  //4
-   struct lowspeed_t lowspeed;
+   float temp; //5
+   qint32 states; //6;
+   quint32 reserved[16-6]; // UPDATE if new line is inserted
 };
 
 //512 bytes

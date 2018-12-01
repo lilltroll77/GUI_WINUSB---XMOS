@@ -139,6 +139,28 @@ void USBbulk::stop_stream(){
      libusb_submit_transfer(   Out_transfer);
 }
 
+void::USBbulk::sendFuseReset(){
+    struct fuse_t{
+        qint32 header;
+        qint32 state;
+    };
+    struct fuse_t fuse = {FuseStatus , 1};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &fuse, sizeof(fuse), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+
+}
+
+void::USBbulk::sendFuseCurrent(float current){
+    struct fuse_t{
+        qint32 header;
+        float current;
+    };
+    struct fuse_t fuse = {FuseCurrent , current};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &fuse, sizeof(fuse), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+    //qDebug() << fuse.current;
+}
+
 void::USBbulk::resetPIintegrator(int channel){
     int data[2] = {resetPI , channel};
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);

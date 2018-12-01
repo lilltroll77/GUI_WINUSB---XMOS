@@ -24,7 +24,6 @@ public slots:
  void PIchanged(double B[3] , double A[2], int channel);
  void EQchanged(double B[3] , double A[2], float fc , int channel , int section);
 
-
 private:
     void calcLevel(int channel);
     QChart* chart;

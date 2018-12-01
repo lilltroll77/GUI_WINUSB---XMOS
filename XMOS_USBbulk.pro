@@ -87,3 +87,6 @@ win32: LIBS += -L$$PWD/MinGW64/dll/ -llibusb-1.0.dll -lusb-1.0
 
 INCLUDEPATH += $$PWD/MinGW64/dll $$PWD/Control
 DEPENDPATH += $$PWD/MinGW64/dll
+
+RESOURCES += \
+    image.qrc

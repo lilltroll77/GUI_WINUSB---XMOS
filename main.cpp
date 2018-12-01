@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     fifo* Fifo = new fifo;
     MainWindow* w = new MainWindow(Fifo);
     USBbulk usb(w , Fifo);
-    controlwindow control(&usb);
+    controlwindow control(&usb , w);
 
     //QObject::connect(w , &MainWindow::restart_stream , &usb , &USBbulk::restart_stream );
     w->show();

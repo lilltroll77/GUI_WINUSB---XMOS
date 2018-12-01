@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/FuseBURNT.png</file>
+        <file>images/FuseOK.png</file>
+    </qresource>
+</RCC>

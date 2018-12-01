@@ -69,6 +69,8 @@ void bodeplot::PIchanged(double B[3] , double A[2] , int channel){
   EQchanged(B , A, 0 , channel , -1); //-1 Ugly fix for section!
 }
 
+
+
 void bodeplot::EQchanged(double B[3] , double A[2], float fc , int channel , int section){
     //qDebug() << "EQ" << channel << section;
     section++; //Ugly fix!

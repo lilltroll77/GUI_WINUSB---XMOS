@@ -21,7 +21,7 @@ QT_CHARTS_USE_NAMESPACE
 #define MAX_CURRRENT 32
 struct scale_t{
     const qreal QE = 360.0/8192.0;
-    const qreal Current = 1.0/8000.0/DECIMATE;
+    const qreal Current = 1.0/16384.0/DECIMATE; //Must match the XMOS settings in CDC
     const qreal Flux = 1.0/8192.0/DECIMATE;
     const qreal Torque = 1.0/8192.0/DECIMATE;
 };
@@ -41,11 +41,13 @@ public:
 
 signals:
     void restart_stream(void);
+    void fuseStatus(bool state);
 
 public slots:
     void update_data();
     void update_FFT(int index, type_e type);
     void show_Warning(QString str);
+    void currentRange(double current);
 
 
 private:
@@ -96,6 +98,7 @@ private:
     struct F_t MLS;
     ffft::FFTRealFixLen <FFT_POW> fft_object;
     quint32 expectedIndex=0;
+    int DSPstates=1;
 };
 
 #endif // MAINWINDOW_H

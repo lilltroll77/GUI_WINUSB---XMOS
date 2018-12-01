@@ -203,7 +203,9 @@ void MainWindow::parse_angle(){
 
 unsigned MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
-    float temp = block->lowSpeed.lowspeed.temp;
+    float temp = block->lowSpeed.temp;
+    fuseStatus(!(bool) block->lowSpeed.states); //XMOS code is inverted
+
     if(expectedIndex != block->lowSpeed.index){
         qDebug()<< expectedIndex << block->lowSpeed.index << "Diff=" << expectedIndex - block->lowSpeed.index;
         expectedIndex = block->lowSpeed.index;
@@ -224,7 +226,7 @@ void MainWindow::updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_
     if(absI >  current.peak)
         current.peak = absI;
     else
-        current.peak -=2*(dt/1000);
+        current.peak -=20*(dt/1000);
 
 }
 
@@ -255,7 +257,7 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
             qreal ic = sum*scale;
-            qreal ib = list[IA][index].y() - ic;
+            qreal ib = -(list[IA][index].y() + ic);
             list[IC][index].setY(ic);
             list[IB][index++].setY(ib);
             updatePhaseCurrent(ib , current[IB] ,  IB);
@@ -368,6 +370,10 @@ void MainWindow::calcMLS(){
     float offset = dB(MLS.binReal[0] , MLS.binImag[0])-48;
     for(int i=0; i<FFT_LEN/2-1 ; i++)
         MLScorrLevel[i] = dB(MLS.binReal[i] , MLS.binImag[i])-offset;
+}
+
+void MainWindow::currentRange(double current){
+    I_chart-> axisY()->setRange(-current , current);
 }
 
 MainWindow::~MainWindow()
