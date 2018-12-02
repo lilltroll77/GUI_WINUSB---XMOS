@@ -13,6 +13,7 @@
 #include "fftworker.h"
 #include <QMenu>
 #include <QMenuBar>
+#include <QValueAxis>
 #include "Gauges/gaugewindow.h"
 //#include "global_enums.h"
 //#include "global_defines.h"
@@ -54,6 +55,8 @@ public slots:
     void currentRange(double current);
     void slot_plotTransferFunction();
     void slot_plotSensitivity();
+    void slot_ZoomIn();
+    void slot_ZoomOut();
 
 
 private:
@@ -97,6 +100,7 @@ private:
     FFTworker* fft[FFT_N];
     F_t FFT[FFT_N];
     QList<QPointF> freq;
+    QValueAxis* axisYFFT;
     //QQueue<union block_t>* fifo;
     fifo* Fifo;
     struct I_t current[3]={{0}};

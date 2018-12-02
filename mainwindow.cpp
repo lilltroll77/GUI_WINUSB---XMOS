@@ -3,9 +3,9 @@
 #include <QMessageBox>
 #include <QThread>
 #include <QQueue>
-#include <QValueAxis>
 #include <QLogValueAxis>
 #include <QBoxLayout>
+#include <QPen>
 #include "data_struct.h"
 #include "mainwindow.h"  /// !!! QMainWindow is a Qt class and is not mainwindow.h!!!
 #include "ui_mainwindow.h"
@@ -24,18 +24,24 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     menuHelp->setDisabled(true);
     QAction* plotTF = new QAction(this);
     QAction* plotSens = new QAction(this);
+    QAction* ZoomIn = new QAction("Zoom in FFT" , this );
+    QAction* ZoomOut = new QAction("Zoom out FFT" ,this);
     plotTF->setText("plot IN->OUT TF");
     plotTF->setToolTip("plot In->Out transfer function of the system");
     plotSens->setText("plot Sens.");
     plotSens->setToolTip("plot the sensitivity of the system");
     menuSettings->addAction(plotTF);
     menuSettings->addAction(plotSens);
+    menuSettings->addAction(ZoomIn);
+    menuSettings->addAction(ZoomOut);
     menuBar->addMenu(menuSettings );
     menuBar->addMenu(menuHelp);
 
 
     connect(plotTF , SIGNAL(triggered()) , this , SLOT(slot_plotSensitivity()));
     connect(plotSens , SIGNAL(triggered()) , this , SLOT(slot_plotTransferFunction()));
+    connect(ZoomIn  , SIGNAL(triggered()) , this , SLOT(slot_ZoomIn()));
+    connect(ZoomOut , SIGNAL(triggered()) , this , SLOT(slot_ZoomOut()));
 
 
 
@@ -52,6 +58,7 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     IView  =    new QChartView(I_chart);
     PIView =    new QChartView(PI_chart);
     FFTView =   new QChartView(FFT_chart);
+
 
     I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
@@ -111,23 +118,25 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
 
     QLogValueAxis* axisX = new QLogValueAxis();
-    QValueAxis* axisY = new QValueAxis();
+    axisYFFT = new QValueAxis();
     axisX->setLabelFormat("%.0f");
-    axisY->setLabelFormat("%.0f");
+    axisYFFT->setLabelFormat("%.0f");
     axisX->setRange(2*fs/FFT_LEN , ceil(fs/2));
-    axisY->setRange(-80 , 20);
+    axisYFFT->setRange(-80 , 20);
     axisX->setMinorTickCount(8);// 2:9 20:10:90
-    axisY->setTickCount(6); // 20dB
-    axisY->setMinorTickCount(3);
+    axisYFFT->setTickCount(6); // 20dB
+    axisYFFT->setMinorTickCount(3);
     axisX->setTitleText("Frequency [Hz]");
-    axisY->setTitleText("Level [dB]");
-    axisY->setTickType(QValueAxis::TickType::TicksFixed);
+    axisYFFT->setTitleText("Level [dB]");
+    axisYFFT->setTickType(QValueAxis::TickType::TicksFixed);
     FFT_chart->addAxis( axisX , Qt::AlignBottom);
-    FFT_chart->addAxis( axisY , Qt::AlignLeft);
+    FFT_chart->addAxis( axisYFFT , Qt::AlignLeft);
+    //(FFTseries[0].pen().setWidth(3);
+    //FFTseries[1].pen().setWidth(3);
     FFTseries[0].attachAxis(axisX);
-    FFTseries[0].attachAxis(axisY);
+    FFTseries[0].attachAxis(axisYFFT);
     FFTseries[1].attachAxis(axisX);
-    FFTseries[1].attachAxis(axisY);
+    FFTseries[1].attachAxis(axisYFFT);
 
     //FFT_chart->createDefaultAxes();
 
@@ -228,7 +237,7 @@ unsigned MainWindow::parse_lowspeed(){
     fuseStatus(!(bool) block->lowSpeed.states); //XMOS code is inverted
 
     if(expectedIndex != block->lowSpeed.index){
-        qDebug()<< expectedIndex << block->lowSpeed.index << "Diff=" << expectedIndex - block->lowSpeed.index;
+        //qDebug()<< expectedIndex << block->lowSpeed.index << "Diff=" << expectedIndex - block->lowSpeed.index;
         expectedIndex = block->lowSpeed.index;
     }
     expectedIndex++;
@@ -408,6 +417,22 @@ void MainWindow::slot_plotTransferFunction(){
     FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting OUTPUT sensitivity").arg(FFT_LEN));
 
 }
+
+void MainWindow::slot_ZoomIn(){
+    axisYFFT->setRange(-6 , 6);
+    axisYFFT->setTickCount(7); // 2dB
+    axisYFFT->setMinorTickCount(1);
+    qDebug() << "Zoom in";
+
+}
+
+void MainWindow::slot_ZoomOut(){
+    axisYFFT->setRange(-80 , 20);
+    axisYFFT->setTickCount(6); // 20dB
+    axisYFFT->setMinorTickCount(1);
+    qDebug() << "Zoom out";
+ }
+
 
 MainWindow::~MainWindow()
 {
