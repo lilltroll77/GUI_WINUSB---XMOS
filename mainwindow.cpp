@@ -21,11 +21,13 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     menuBar = new QMenuBar(this);
     menuSettings = new QMenu("Plot settings" , this);
     menuHelp     = new QMenu("Help" , this);
+    menuSignal   = new QMenu("Signal generator" , this);
     menuHelp->setDisabled(true);
     QAction* plotTF = new QAction(this);
     QAction* plotSens = new QAction(this);
     QAction* ZoomIn = new QAction("Zoom in FFT" , this );
     QAction* ZoomOut = new QAction("Zoom out FFT" ,this);
+
     plotTF->setText("plot IN->OUT TF");
     plotTF->setToolTip("plot In->Out transfer function of the system");
     plotSens->setText("plot Sens.");
@@ -34,7 +36,22 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     menuSettings->addAction(plotSens);
     menuSettings->addAction(ZoomIn);
     menuSettings->addAction(ZoomOut);
+
+
+    Signal[OFF] = new QAction("OFF" ,this);
+    Signal[MLS18] = new QAction("MLS 2^18" ,this);
+    Signal[RND] = new QAction("Random" ,this);
+    Signal[SINE] = new QAction("Sine-wave" ,this);
+    Signal[OCTAVE] = new QAction("Octave" ,this);
+
+    for(int i=0; i< 5 ; i++){
+        Signal[i]->setData(QVariant(i));
+        menuSignal->addAction( Signal[i]);
+        connect(Signal[i], SIGNAL(triggered()) , this , SLOT(slot_signal()));
+    }
+
     menuBar->addMenu(menuSettings );
+    menuBar->addMenu(menuSignal);
     menuBar->addMenu(menuHelp);
 
 
@@ -42,7 +59,6 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     connect(plotSens , SIGNAL(triggered()) , this , SLOT(slot_plotTransferFunction()));
     connect(ZoomIn  , SIGNAL(triggered()) , this , SLOT(slot_ZoomIn()));
     connect(ZoomOut , SIGNAL(triggered()) , this , SLOT(slot_ZoomOut()));
-
 
 
     calcMLS();
@@ -74,6 +90,7 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
             list[i].append(pnt);
         }
         series[i].replace( list[i]);
+        series[i].setUseOpenGL(useOpenGL);
     }
     //Only use 2 values for setpoint, at least for now
     series[ SetFlux].append(0 , 0);
@@ -92,8 +109,10 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
     FFTseries[FFT_IA].setName("I phase A");
     FFTseries[FFT_IC].setName("I phase C");
+    FFTseries[FFT_IA].setUseOpenGL(useOpenGL);
+    FFTseries[FFT_IC].setUseOpenGL(useOpenGL);
     QPen pen = FFTseries[FFT_IA].pen();
-    pen.setWidth(1);
+    pen.setWidth(2);
     pen.setColor(series[IA].color());
     FFTseries[FFT_IA].setPen(pen);
     pen.setColor(series[IC].color());
@@ -122,9 +141,10 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     axisX->setLabelFormat("%.0f");
     axisYFFT->setLabelFormat("%.0f");
     axisX->setRange(2*fs/FFT_LEN , ceil(fs/2));
-    axisYFFT->setRange(-80 , 20);
+    axisYFFT->setRange(-80 , 40);
+    axisYFFT->setTickCount(1+(40-(-80))/20); // 20dB
     axisX->setMinorTickCount(8);// 2:9 20:10:90
-    axisYFFT->setTickCount(6); // 20dB
+
     axisYFFT->setMinorTickCount(3);
     axisX->setTitleText("Frequency [Hz]");
     axisYFFT->setTitleText("Level [dB]");
@@ -140,9 +160,9 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
     //FFT_chart->createDefaultAxes();
 
-     //IView ->setRenderHint(QPainter:: HighQualityAntialiasing);
-     //PIView->setRenderHint(QPainter:: HighQualityAntialiasing);
-     FFTView ->setRenderHint(QPainter:: Antialiasing);
+     IView ->setRenderHint(QPainter::RenderHint::Antialiasing);
+     PIView->setRenderHint(QPainter::RenderHint::Antialiasing);
+     FFTView ->setRenderHint(QPainter::RenderHint::Antialiasing);
 
      layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
      layout ->addWidget(IView);
@@ -151,6 +171,13 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
 
      QWidget *placeholderWidget = new QWidget();
      placeholderWidget->setLayout(layout);
+
+     /*** STAUS BAR ***/
+
+     statusbar = new QStatusBar;
+     statusbar->setObjectName("statusbar");
+     statusbar->showMessage(tr("Not connected"));
+     setStatusBar(statusbar);
 
      //box = new QGroupBox("Plots" , this);
      //box->setLayout(layout);
@@ -161,6 +188,7 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
      this -> setMinimumHeight(768);
      for(int i=0; i<FFT_N ; i++){
         connect(fft[i] , &FFTworker::resultReady , this ,  &MainWindow::update_FFT );
+        connect(this ,   &MainWindow::useXCorr , fft[i] , &FFTworker::useXCorr );
         fft_thread[i]->start();
         }
 
@@ -235,15 +263,10 @@ unsigned MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
     float temp = block->lowSpeed.temp;
     fuseStatus(!(bool) block->lowSpeed.states); //XMOS code is inverted
-
-    if(expectedIndex != block->lowSpeed.index){
-        //qDebug()<< expectedIndex << block->lowSpeed.index << "Diff=" << expectedIndex - block->lowSpeed.index;
-        expectedIndex = block->lowSpeed.index;
-    }
-    expectedIndex++;
-    //qDebug()<<temp;
+    double load = ((100.0/333.0)*block->lowSpeed.DSPload);
+    statusbar->showMessage(QString("DSP-core load=%1%").arg( round(load) ));
     gaugeWindow->setTemp(temp);
-    return block->lowSpeed.index & (FFT_LEN/128-1);
+    return block->lowSpeed.index;
 }
 
 void MainWindow::updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot){
@@ -427,12 +450,34 @@ void MainWindow::slot_ZoomIn(){
 }
 
 void MainWindow::slot_ZoomOut(){
-    axisYFFT->setRange(-80 , 20);
-    axisYFFT->setTickCount(6); // 20dB
+    axisYFFT->setRange(-80 , 40);
+    axisYFFT->setTickCount(1+(40-(-80))/20); // 20dB
     axisYFFT->setMinorTickCount(1);
     qDebug() << "Zoom out";
  }
 
+void MainWindow::slot_signal(){
+    QAction* obj = (QAction*) this->sender();
+    int index = obj->data().toInt();
+    QPen penA = FFTseries[FFT_IA].pen();
+    QPen penC = FFTseries[FFT_IC].pen();
+    switch(index){
+    case MLS18:
+        penA.setWidth(2);
+        penC.setWidth(2);
+        emit useXCorr(true);
+    break;
+    default:
+        penA.setWidth(1);
+        penC.setWidth(1);
+        emit useXCorr(false);
+        break;
+    }
+    FFTseries[FFT_IA].setPen(penA);
+    FFTseries[FFT_IC].setPen(penC);
+    emit SignalGenerator(index);
+    qDebug() << index;
+}
 
 MainWindow::~MainWindow()
 {

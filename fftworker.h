@@ -36,6 +36,7 @@ public:
 
 public slots:
     void calcFFT(struct F_t* X, struct f_t* x , enum type_e type , int index, QVector<int> &v_LUT);
+    void useXCorr(bool state);
 
 signals:
     void resultReady(int index , enum type_e type);
@@ -44,6 +45,7 @@ signals:
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
      float* mls_xcorr;
+     bool use_xcorr=true;
 
 
 };

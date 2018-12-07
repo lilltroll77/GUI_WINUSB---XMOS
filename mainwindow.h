@@ -14,6 +14,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QValueAxis>
+#include <QStatusBar>
 #include "Gauges/gaugewindow.h"
 //#include "global_enums.h"
 //#include "global_defines.h"
@@ -25,8 +26,19 @@ QT_CHARTS_USE_NAMESPACE
 struct scale_t{
     const qreal QE = 360.0/8192.0;
     const qreal Current = 1.0/16384.0/DECIMATE; //Must match the XMOS settings in CDC
-    const qreal Flux = 1.0/8192.0/DECIMATE;
-    const qreal Torque = 1.0/8192.0/DECIMATE;
+    const qreal Flux = 0.5/16384.0/DECIMATE;
+    const qreal Torque = 0.5/16384.0/DECIMATE;
+};
+
+
+struct signal_t{
+    QAction* Off;
+    //QAction* MLS16 = new QAction("MLS 2^16" ,this);
+    //QAction* MLS17 = new QAction("MLS 2^17" ,this);
+    QAction* MLS18;
+    QAction* RND;
+    QAction* Sine;
+    QAction* Octave;
 };
 
 namespace Ui {
@@ -47,6 +59,8 @@ signals:
     void restart_stream(void);
     void fuseStatus(bool state);
     void SignalSource(int source);
+    void SignalGenerator(int index);
+    void useXCorr(bool state);
 
 public slots:
     void update_data();
@@ -57,9 +71,11 @@ public slots:
     void slot_plotSensitivity();
     void slot_ZoomIn();
     void slot_ZoomOut();
+    void slot_signal();
 
 
 private:
+    enum signal_e{OFF , MLS18 , RND , SINE , OCTAVE};
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
     void updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot);
@@ -71,7 +87,9 @@ private:
     Ui::MainWindow *ui;
     QMenu *menuSettings;
     QMenu *menuHelp;
+    QMenu *menuSignal;
     QMenuBar *menuBar;
+    QAction* Signal[5];
     static const int len = 7;
     QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
     QList<QPointF> list[len-2];
@@ -111,6 +129,8 @@ private:
     ffft::FFTRealFixLen <FFT_POW> fft_object;
     quint32 expectedIndex=0;
     int DSPstates=1;
+    bool useOpenGL = true;
+    QStatusBar* statusbar;
 };
 
 #endif // MAINWINDOW_H

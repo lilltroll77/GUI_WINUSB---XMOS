@@ -10,6 +10,8 @@ USBbulk::USBbulk(MainWindow* w , fifo *fifo_ptr){
     connect(this, &USBbulk::dataAvailable , w , &MainWindow::update_data);
     connect(this, &USBbulk::sendWarning   , w , &MainWindow::show_Warning);
     connect(w , &MainWindow::SignalSource , this , &USBbulk::sendSignalSource );
+    connect(w , &MainWindow::SignalGenerator , this , &USBbulk::sendSignalGenerator );
+
     Fifo= fifo_ptr;
 }
 
@@ -51,15 +53,14 @@ void USBbulk::run(){
      libusb_claim_interface(handle , 0);
      int speed = libusb_get_device_speed(XMOSdev);
      int pkgSize= libusb_get_max_packet_size(XMOSdev , XMOS_BULK_EP_IN);
-
-    //stop_stream();
-    //wait(100);
-    Out_transfer = libusb_alloc_transfer(0);
+     Out_transfer = libusb_alloc_transfer(0);
     for(int buff=0; buff<BUFFERS ; buff++){
        In_transfer[buff]  = libusb_alloc_transfer(0);
        libusb_fill_bulk_transfer(       In_transfer[buff], handle, XMOS_BULK_EP_IN ,(unsigned char*) &mem[buff], sizeof(mem[buff]), &USBbulk::callback  , nullptr , 0);
        libusb_submit_transfer(          In_transfer[buff]);
     }
+    //
+    wait(250);
     start_stream();
     unsigned syncPnt=0;
     while(!do_exit){
@@ -167,6 +168,13 @@ void USBbulk::sendSignalSource(int source){
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);
     libusb_submit_transfer(    Out_transfer);
 }
+
+void USBbulk::sendSignalGenerator(int index){
+    quint32 data[2] = {SignalGenerator , (quint32) index};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+}
+
 
 void USBbulk::resetPIintegrator(int channel){
     quint32 data[2] = {resetPI , (quint32) channel};

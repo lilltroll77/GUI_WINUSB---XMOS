@@ -40,7 +40,8 @@ struct blockC_t{
    quint32 index;  //4
    float temp; //5
    qint32 states; //6;
-   quint32 reserved[16-6]; // UPDATE if new line is inserted
+   qint32 DSPload; //6;
+   quint32 reserved[16-7]; // UPDATE if new line is inserted
 };
 
 //512 bytes

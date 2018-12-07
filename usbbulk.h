@@ -31,10 +31,11 @@ public slots:
      void sendFuseCurrent(float current);
      void sendFuseReset();
      void sendSignalSource(int source);
+     void sendSignalGenerator(int index);
 
 
 private:
-    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource};
+    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource , SignalGenerator};
 
     struct USB_PIsection_t{
         int header = USBbulk::PIsection;

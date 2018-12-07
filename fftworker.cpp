@@ -19,6 +19,10 @@ FFTworker::FFTworker(float* Xcorr, QObject *parent) : QObject(parent)
     mls_xcorr = Xcorr;
 }
 
+void FFTworker::useXCorr(bool state){
+    use_xcorr = state;
+}
+
 void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, QVector<int> &v_LUT) {
     fft_object.do_fft((float*) X , (float*)x);
     switch(type){
@@ -34,6 +38,7 @@ void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, Q
     case LogLog:
         int f_log=0;
         int exit=0;
+
         for(int v=0;; v++){
             int width = 1<<v; // 1 2 4 8 16...
             int start = v_LUT[v];
@@ -42,7 +47,12 @@ void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, Q
                 float max=-1000 , min=1000 , level;
                 for(int k=i; k< width+i ; k++){
                     if(k < FFT_LEN/2){
-                        level=dB(X->binReal[k] , X->binImag[k])- mls_xcorr[k];
+                        level=dB(X->binReal[k] , X->binImag[k]);
+                        if(use_xcorr)
+                            level-=mls_xcorr[k];
+                        else
+                            level-=mls_xcorr[0];
+
                         if( level > max)
                             max = level;
                         if( level < min)
