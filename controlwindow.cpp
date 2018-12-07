@@ -30,11 +30,14 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
    button_reset->setToolTip("Reset fuse");
    slot_ResetButtonState(false);
 
+   drv8320 = new DRV8320S(this);
+
   top_layout->addWidget(torque, 0 , 0 , 1 , 2);
   top_layout->addWidget(flux ,  0 , 2);
   top_layout->addWidget(bode  , 0 , 3);
   top_layout->addWidget(knob_fuse , 1 , 0 , Qt::AlignRight);
   top_layout->addWidget(button_reset , 1 , 1 , Qt::AlignLeft);
+  top_layout->addWidget(drv8320->masterBox , 1 , 2 ,2,2);
 
   groupbox = new QGroupBox(this);
   groupbox->setLayout(top_layout);
