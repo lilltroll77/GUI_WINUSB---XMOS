@@ -16,6 +16,9 @@ class USBbulk : public QThread {
 public:
     USBbulk(MainWindow* w, fifo* Fifo);
     ~USBbulk();
+    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource , SignalGenerator,
+                  DRV_VDS , DRV_ODT , DRV_TDRIVE , DRV_IDRIVE_P_HS , DRV_IDRIVE_N_HS , DRV_IDRIVE_P_LS , DRV_IDRIVE_N_LS};
+
 
 signals:
     void dataAvailable();
@@ -32,10 +35,12 @@ public slots:
      void sendFuseReset();
      void sendSignalSource(int source);
      void sendSignalGenerator(int index);
+     void send_DRV8320S(int command , int index);
+
 
 
 private:
-    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource , SignalGenerator};
+    //enum COMMAND{LINK_DOWN , LINK_UP , COM_CURRENT , COM_STOP, COM_DRV , COM_DRV_ERROR , COM_NEWTEMP , COM_FUSE , COM_RESET , COM_VDS , COM_ODT , COM_TDRIVE , COM_IDRIVE_P_HS , COM_IDRIVE_N_HS , COM_IDRIVE_P_LS , COM_IDRIVE_N_LS , COM_SET_TORQUE , COM_SET_FLUX , COM_PI_FUSE , COM_PI_TORQUE_FREQ , COM_PI_TORQUE_GAIN , COM_PI_FLUX_FREQ , COM_PI_FLUX_GAIN};
 
     struct USB_PIsection_t{
         int header = USBbulk::PIsection;

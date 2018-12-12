@@ -15,7 +15,7 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
   knob_fuse->setFixedWidth(100);
    knob_fuse->setTitle("Fuse [A]");
    knob_fuse->setToolTip("Fuse current");
-   knob_fuse->setRange(1 , 32 , 128);
+   knob_fuse->setRange(0.25 , 32 , 128);
    knob_fuse->setValue(20);
    knob_fuse->setDecimals(1);
    knob_fuse->setKnobColor("rgb(255, 200, 0)");
@@ -61,7 +61,8 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
   connect(knob_fuse       , &Knob::valueChanged        , w->gaugeWindow->currentGauge , &currentGague::setScale);
   connect(button_reset    , &QPushButton::clicked      , usb  , &USBbulk::sendFuseReset);
   connect(button_reset    , &QPushButton::clicked      , this , &controlwindow::slot_ResetButtonState);
-  connect(w               , &MainWindow::fuseStatus     , this , &controlwindow::slot_ResetButtonState );
+  connect(w               , &MainWindow::fuseStatus    , this , &controlwindow::slot_ResetButtonState );
+  connect(this->drv8320   , &DRV8320S::send_DRV8320S   , usb  , &USBbulk::send_DRV8320S);
   w->currentRange(knob_fuse->Value());
   w->gaugeWindow->currentGauge->setScale(knob_fuse->Value());
   torque->PI->updateSettingsAndPlot(false);

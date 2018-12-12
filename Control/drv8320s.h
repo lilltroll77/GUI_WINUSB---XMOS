@@ -143,6 +143,7 @@ private:
 
 signals:
     void DRV_reset_signal();
+    void send_DRV8320S(int command , int index);
 
 public slots:
     //void DRVerror_changed(short* data);

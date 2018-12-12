@@ -11,7 +11,6 @@ USBbulk::USBbulk(MainWindow* w , fifo *fifo_ptr){
     connect(this, &USBbulk::sendWarning   , w , &MainWindow::show_Warning);
     connect(w , &MainWindow::SignalSource , this , &USBbulk::sendSignalSource );
     connect(w , &MainWindow::SignalGenerator , this , &USBbulk::sendSignalGenerator );
-
     Fifo= fifo_ptr;
 }
 
@@ -141,7 +140,8 @@ void USBbulk::stop_stream(){
      libusb_submit_transfer(   Out_transfer);
 }
 
-void::USBbulk::sendFuseReset(){
+
+void  USBbulk::sendFuseReset(){
     struct fuse_t{
         qint32 header;
         qint32 state;
@@ -206,6 +206,17 @@ void USBbulk::sendEQsettings(EQ_section_t &EQ , int channel , int section ){
     memcpy(&eq.data , &EQ , 11*sizeof(qint32));
     //libusb_bulk_transfer(handle , XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 14*sizeof(qint32), NULL , 0);
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &eq, 15*sizeof(qint32), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+}
+
+void USBbulk::send_DRV8320S(int command , int index){
+    struct DRV8320S_t{
+        qint32 command;
+        qint32 index;
+    };
+    struct DRV8320S_t DRV = {command , index};
+    //qDebug() << DRV.command << DRV.index;
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &DRV, sizeof(DRV), &USBbulk::empty_callback  , nullptr , 0);
     libusb_submit_transfer(    Out_transfer);
 }
 

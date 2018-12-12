@@ -22,12 +22,14 @@
 
 QT_CHARTS_USE_NAMESPACE
 
-#define MAX_CURRRENT 32
+#define MAX_CURRRENT 32.0
+#define N_MAG 7 //Motor magnets per half turn ?
 struct scale_t{
     const qreal QE = 360.0/8192.0;
-    const qreal Current = 1.0/16384.0/DECIMATE; //Must match the XMOS settings in CDC
+    const qreal Current = MAX_CURRRENT/1048576.0/DECIMATE; //Must match the XMOS settings in CDC
     const qreal Flux = 0.5/16384.0/DECIMATE;
     const qreal Torque = 0.5/16384.0/DECIMATE;
+    const qreal U = 1.0/0x10000;
 };
 
 
@@ -72,6 +74,7 @@ public slots:
     void slot_ZoomIn();
     void slot_ZoomOut();
     void slot_signal();
+    void slot_Checkbox(int index);
 
 
 private:
@@ -79,7 +82,7 @@ private:
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
     void updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot);
-    int parse(enum plots_e plot , qreal scale, int index);
+    void parse(enum plots_e plot );
     void parse_angle();
     unsigned parse_lowspeed();
     void reset_states(void);
@@ -90,21 +93,25 @@ private:
     QMenu *menuSignal;
     QMenuBar *menuBar;
     QAction* Signal[5];
-    static const int len = 7;
-    QString Namestr[len]={"I phase A" , "I phase B" , "I phase C" , "Flux" , "Tourque", "Flux set" , "Tourque set" };
-    QList<QPointF> list[len-2];
-    float angle[8192];
+    static const int len = 8;
+    QList<QPointF> list[2*4];
+    int angle[128/DECIMATE];
+    qreal iA[128/DECIMATE];
     int angle_pos=0;
     QLineSeries series[len];
     QLineSeries FFTseries[2];
     QChartView *IView;
     QChartView *PIView;
     QChartView *FFTView;
-    QChart *I_chart;
-    QChart *PI_chart;
+    QChart *chart1;
+    QChart *chart2;
     QChart *FFT_chart;
+    QValueAxis* axisY1;
+    QValueAxis* axisY2;
+    QValueAxis* axisX1;
+    QValueAxis* axisX2;
     qreal dt= 26*64/5e5;
-    QBoxLayout* layout;
+    QGridLayout* layout;
     QGroupBox *box;
     scale_t scale;
     int updates=0;
@@ -131,6 +138,14 @@ private:
     int DSPstates=1;
     bool useOpenGL = true;
     QStatusBar* statusbar;
+    union block_t* blockU;
+    QGroupBox* choiceBox[2];
+    static const int plotChoiceN=6;
+    QCheckBox* checkbox[2][plotChoiceN];
+    QVBoxLayout* layoutBox[2];
+    QSignalMapper* signalMapper;
+    enum plotMode_e{ABCOut , AlphaBetaOut , CurrentIn , DiffCurrentIn , AlphaBetaIn, DQIn};
+    int plotMode[2]={ABCOut , CurrentIn};
 };
 
 #endif // MAINWINDOW_H

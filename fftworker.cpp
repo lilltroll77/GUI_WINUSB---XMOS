@@ -16,7 +16,12 @@ float dB(float a , float b){
 
 FFTworker::FFTworker(float* Xcorr, QObject *parent) : QObject(parent)
 {
+    const qreal a0 = 7938.0/18608.0;
+    const qreal a1 = 9240.0/18608.0;
+    const qreal a2 = 1430.0/18608.0;
     mls_xcorr = Xcorr;
+    for(int i=0; i<FFT_LEN ; i++)
+        blackman[i] = a0 - a1*cos(2*M_PI*i/(FFT_LEN-1)) + a2*cos(4*M_PI*i/(FFT_LEN-1));
 }
 
 void FFTworker::useXCorr(bool state){
@@ -24,6 +29,8 @@ void FFTworker::useXCorr(bool state){
 }
 
 void FFTworker::calcFFT(struct F_t* X ,struct f_t* x , type_e type, int index, QVector<int> &v_LUT) {
+    for(int i=0; i<FFT_LEN ; i++)
+        x->sample[i] *=blackman[i];
     fft_object.do_fft((float*) X , (float*)x);
     switch(type){
     case Absolute:

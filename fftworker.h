@@ -45,7 +45,8 @@ signals:
 private:
      ffft::FFTRealFixLen <FFT_POW> fft_object;
      float* mls_xcorr;
-     bool use_xcorr=true;
+     bool use_xcorr=false;
+     float blackman[FFT_LEN];
 
 
 };

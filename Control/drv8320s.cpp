@@ -1,4 +1,5 @@
 #include "drv8320s.h"
+#include "usbbulk.h"
 
 void addIdrive(box_t *gate , QGridLayout *layout, QString str  ,const unsigned short current[16] , int col , int mult){
     gate->comboBox = new QComboBox;
@@ -129,14 +130,14 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     top_layout.addWidget(masterBox);
     this->setLayout(&top_layout);
 
-    connect(VDS.combo.comboBox, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_VDSChanged(int)) );
-    connect(ODT.combo.comboBox, SIGNAL(currentIndexChanged(int)) , this, SLOT(slot_ODTChanged(int)) );
-    connect(tDrive.combo.comboBox, SIGNAL(currentIndexChanged(int)) , this,  SLOT(slot_TdriveChanged(int)));
-    connect(iDrive.POS_HS.comboBox ,SIGNAL(currentIndexChanged(int)) , this,  SLOT(slot_IDrive_P_HS(int)));
-    connect(iDrive.NEG_HS.comboBox ,SIGNAL(currentIndexChanged(int)) , this,  SLOT(slot_IDrive_N_HS(int)));
-    connect(iDrive.POS_LS.comboBox ,SIGNAL(currentIndexChanged(int)) , this,  SLOT(slot_IDrive_P_LS(int)));
-    connect(iDrive.NEG_LS.comboBox ,SIGNAL(currentIndexChanged(int)) , this,  SLOT(slot_IDrive_N_LS(int)));
-    connect(reset_button , SIGNAL(clicked(bool) ), this , SLOT(DRV_reset(bool)));
+    connect(VDS.combo.comboBox,     SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_VDSChanged(int)) );
+    connect(ODT.combo.comboBox,     SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_ODTChanged(int)) );
+    connect(tDrive.combo.comboBox,  SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_TdriveChanged(int)));
+    connect(iDrive.POS_HS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_P_HS(int)));
+    connect(iDrive.NEG_HS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_N_HS(int)));
+    connect(iDrive.POS_LS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_P_LS(int)));
+    connect(iDrive.NEG_LS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_N_LS(int)));
+    connect(reset_button ,          SIGNAL(clicked(bool) )             , this, SLOT(DRV_reset(bool)));
 
 }
 /*
@@ -215,34 +216,34 @@ void DRV8320S::set_status(int reg , int bit, bool status){
 
 }
 
-void DRV8320S::DRV_reset(bool){
-    //writeSerialCommand(COM_DRV_RESET , serial);
+void DRV8320S::DRV_reset(bool state){
+    emit DRV_reset(state);
 }
 
 void DRV8320S::slot_ODTChanged(int index){
-    //writeSerialUint(COM_ODT , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_ODT , index);
 }
 
 void DRV8320S::slot_TdriveChanged(int index){
-    //writeSerialUint(COM_TDRIVE , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_TDRIVE , index);
 }
 
 void DRV8320S::slot_VDSChanged(int index){
-    //writeSerialUint(COM_VDS , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_VDS , index);
 }
 
 void DRV8320S::slot_IDrive_P_HS(int index){
-    //writeSerialUint(COM_IDRIVE_P_HS , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_IDRIVE_P_HS , index);
 }
 
 void DRV8320S::slot_IDrive_N_HS(int index){
-    //writeSerialUint(COM_IDRIVE_N_HS , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_IDRIVE_N_HS , index);
 }
 
 void DRV8320S::slot_IDrive_P_LS(int index){
-    //writeSerialUint(COM_IDRIVE_P_LS , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_IDRIVE_P_LS , index);
 }
 
 void DRV8320S::slot_IDrive_N_LS(int index){
-    //writeSerialUint(COM_IDRIVE_N_LS , index , serial);
+    emit send_DRV8320S(USBbulk::DRV_IDRIVE_N_LS , index);
 }

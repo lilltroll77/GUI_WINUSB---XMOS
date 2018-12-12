@@ -17,16 +17,50 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     //,ui(new Ui::MainWindow)
 {
     gaugeWindow = new GaugeWindow(this);
+    qDebug()<<"enum" <<sizeof(plotMode_e);
+
     Fifo = fifo_ptr;
     menuBar = new QMenuBar(this);
     menuSettings = new QMenu("Plot settings" , this);
     menuHelp     = new QMenu("Help" , this);
     menuSignal   = new QMenu("Signal generator" , this);
     menuHelp->setDisabled(true);
+
+    signalMapper = new QSignalMapper(this);
+
+    for(int i=0; i<2 ; i++){
+         checkbox[i][ABCOut]= new QCheckBox("ABC->" ,this);
+         checkbox[i][ABCOut]->setToolTip("3phase output signal");
+         checkbox[i][AlphaBetaOut]= new QCheckBox("ab->" ,this);
+         checkbox[i][AlphaBetaOut]->setFont(QFont("Symbol"));
+         checkbox[i][AlphaBetaOut]->setToolTip("Output Alpha-Beta");
+         checkbox[i][CurrentIn]= new QCheckBox( "I" ,this);
+         checkbox[i][CurrentIn]->setToolTip("Phase currents");
+         checkbox[i][DiffCurrentIn]= new QCheckBox( "dI" ,this);
+         checkbox[i][DiffCurrentIn]->setToolTip("Phase diff currents");
+         checkbox[i][AlphaBetaIn]= new QCheckBox( "->ab" ,this);
+         checkbox[i][AlphaBetaIn]->setFont(QFont("Symbol"));
+         checkbox[i][AlphaBetaIn]->setToolTip("Alpha-Beta feedback");
+         checkbox[i][DQIn]= new QCheckBox( "->DQ" ,this);
+         checkbox[i][DQIn]->setToolTip("Direct-Quadrature feedback");
+         choiceBox[i] = new QGroupBox(this);
+         layoutBox[i] = new QVBoxLayout(this);
+         for(int j=0; j<plotChoiceN ; j++){
+             layoutBox[i]->addWidget(checkbox[i][j]);
+             connect(checkbox[i][j] , SIGNAL(clicked()) , signalMapper , SLOT(map()));
+             signalMapper->setMapping(checkbox[i][j], plotChoiceN*i+j);
+         }
+         choiceBox[i]->setLayout(layoutBox[i]);
+    }
+    connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(slot_Checkbox(int)));
+
+
     QAction* plotTF = new QAction(this);
     QAction* plotSens = new QAction(this);
     QAction* ZoomIn = new QAction("Zoom in FFT" , this );
     QAction* ZoomOut = new QAction("Zoom out FFT" ,this);
+
+
 
     plotTF->setText("plot IN->OUT TF");
     plotTF->setToolTip("plot In->Out transfer function of the system");
@@ -68,24 +102,26 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
         fft[i] = new FFTworker(MLScorrLevel , this);
         fft[i]->moveToThread(fft_thread[i]);
     }
-    I_chart =   new QChart();
-    PI_chart =  new QChart();
+    chart1 =   new QChart();
+    chart2 =  new QChart();
     FFT_chart = new QChart();
-    IView  =    new QChartView(I_chart);
-    PIView =    new QChartView(PI_chart);
+    IView  =    new QChartView(chart1);
+    PIView =    new QChartView(chart2);
     FFTView =   new QChartView(FFT_chart);
+    axisX1 = new QValueAxis();
+    axisY1 = new QValueAxis();
+    axisX2 = new QValueAxis();
+    axisY2 = new QValueAxis();
 
-
-    I_chart ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
-    PI_chart->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
+    chart1 ->setTitle(QString("XMOS captured sensor data @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
+    chart2->setTitle(QString("XMOS PI controller @ %1 kHz").arg(1/dt , 0, 'f' , 2) );
     //FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS").arg(FFT_LEN));
     slot_plotTransferFunction();
-    for(int i=IA; i<=Torque ; i++){
+    for(int i=0; i<6 ; i++){
         QPointF pnt;
-        list[i].reserve(128/DECIMATE*ABUFFERS);
-        //Simple low pass filtering
-        for(int k=0; k<128/DECIMATE*ABUFFERS ; k++){
-            pnt.setX(DECIMATE * (qreal)k * scale.QE);
+        list[i].reserve(1024);
+        for(int k=0; k < 1024 ; k++){
+            pnt.setX(N_MAG*360.0*k/1024.0);
             pnt.setY((qreal) 0);
             list[i].append(pnt);
         }
@@ -93,18 +129,23 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
         series[i].setUseOpenGL(useOpenGL);
     }
     //Only use 2 values for setpoint, at least for now
-    series[ SetFlux].append(0 , 0);
-    series[ SetFlux].append(360,0);
-    series[ SetTorque].append(0,0.5);
-    series[ SetTorque].append(360,0.5);
+    series[6].append(0 , 0);
+    series[6].append(360,0);
+    series[7].append(0,0.5);
+    series[7].append(360,0.5);
+    series[6].setUseOpenGL(useOpenGL);
+    series[7].setUseOpenGL(useOpenGL);
 
-    for(int i=IA; i<=IC ; i++){
-        series[i].setName(Namestr[i]);
-        I_chart ->addSeries( &series[i]);
+    for(int i=0; i<3 ; i++){
+        chart1 ->addSeries( &series[i]);
     }
-    for(int i=Flux ; i< len; i++){
-        series[i].setName(Namestr[i]);
-        PI_chart ->addSeries(&series[i]);
+    for(int i=3 ; i< 6; i++){
+        chart2 ->addSeries(&series[i]);
+    }
+    for (int i=0; i<2; i++){
+     int mode = plotMode[i];
+     checkbox[i][mode]->setChecked(true);
+     slot_Checkbox(plotChoiceN*i + mode);
     }
 
     FFTseries[FFT_IA].setName("I phase A");
@@ -112,7 +153,7 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     FFTseries[FFT_IA].setUseOpenGL(useOpenGL);
     FFTseries[FFT_IC].setUseOpenGL(useOpenGL);
     QPen pen = FFTseries[FFT_IA].pen();
-    pen.setWidth(2);
+    pen.setWidth(1);
     pen.setColor(series[IA].color());
     FFTseries[FFT_IA].setPen(pen);
     pen.setColor(series[IC].color());
@@ -123,18 +164,33 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
     FFT_chart->addSeries(&FFTseries[0]);
     FFT_chart->addSeries(&FFTseries[1]);
 
-    I_chart ->createDefaultAxes();
-    I_chart-> axisX()->setTitleText("Shaft angle Deg°");
-    I_chart-> axisY()->setTitleText("Current [A]");
-    I_chart-> axisX()->setRange(0 , 360);
-    I_chart-> axisY()->setRange(-5 , 5);
+    //I_chart ->createDefaultAxes();
 
-    PI_chart->createDefaultAxes();
-    PI_chart-> axisX()->setTitleText("Shaft angle Deg°");
-    PI_chart-> axisY()->setRange(-5 , 5);
-    PI_chart-> axisX()->setRange(0 , 360);
+    axisX1->setTitleText("Space vector angle [°]");
+    axisX1->setRange(0 ,N_MAG* 360);
+    axisY1->setRange(-1 , 1);
+    axisX1->setTickCount(2*N_MAG+1);
 
+    chart1-> addAxis(axisX1 , Qt::AlignBottom);
+    chart1-> addAxis(axisY1 , Qt::AlignLeft);
 
+    for(int i=0; i<3 ; i++){
+        series[i].attachAxis(axisX1);
+        series[i].attachAxis(axisY1);
+    }
+
+    axisX2->setTitleText("Space vector angle [°]");
+    axisX2->setRange(0 ,N_MAG* 360);
+    axisY2->setRange(-1 , 1);
+    axisX2->setTickCount(2*N_MAG+1);
+
+    chart2-> addAxis(axisX2 , Qt::AlignBottom);
+    chart2-> addAxis(axisY2 , Qt::AlignLeft);
+
+    for(int i=3; i<6 ; i++){
+        series[i].attachAxis(axisX2);
+        series[i].attachAxis(axisY2);
+    }
 
     QLogValueAxis* axisX = new QLogValueAxis();
     axisYFFT = new QValueAxis();
@@ -164,10 +220,12 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
      PIView->setRenderHint(QPainter::RenderHint::Antialiasing);
      FFTView ->setRenderHint(QPainter::RenderHint::Antialiasing);
 
-     layout = new QBoxLayout(QBoxLayout::TopToBottom , this);
-     layout ->addWidget(IView);
-     layout ->addWidget(PIView);
-     layout ->addWidget(FFTView);
+     layout = new QGridLayout(this);
+     layout ->addWidget(IView , 0 , 0);
+     layout ->addWidget(choiceBox[0], 0 , 1, Qt::AlignCenter);
+     layout ->addWidget(PIView , 1 , 0);
+     layout ->addWidget(choiceBox[1], 1 , 1 , Qt::AlignCenter);
+     layout ->addWidget(FFTView, 2 , 0);
 
      QWidget *placeholderWidget = new QWidget();
      placeholderWidget->setLayout(layout);
@@ -254,17 +312,21 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
 
 void MainWindow::parse_angle(){
     union block_t* block = Fifo->read();
-    for(int i=0; i<128 ; i++)
-        angle[angle_pos++] = block->samples[i]*scale.QE;
-    angle_pos &=8191;
+    int fi;
+    int pos=0;
+    for(int i=DECIMATE/2; i<128 ; i+=DECIMATE){
+        fi = block->samples[i];
+        angle[pos++] = fi;
+    }
+    gaugeWindow->setShaftAngle((360.0f/1024.0f)*(fi>>3));
 }
 
 unsigned MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
     float temp = block->lowSpeed.temp;
     fuseStatus(!(bool) block->lowSpeed.states); //XMOS code is inverted
-    double load = ((100.0/333.0)*block->lowSpeed.DSPload);
-    statusbar->showMessage(QString("DSP-core load=%1%").arg( round(load) ));
+    int load = 3*block->lowSpeed.DSPload;
+    statusbar->showMessage(QString("DSP-core load=%1%").arg(load/10));
     gaugeWindow->setTemp(temp);
     return block->lowSpeed.index;
 }
@@ -283,7 +345,7 @@ void MainWindow::updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_
 
 }
 
-int MainWindow::parse(enum plots_e plot , qreal scale, int index){
+void MainWindow::parse(enum plots_e plot){
     union block_t* block = Fifo->read();
     int readPos = 0;
     switch(plot){
@@ -295,9 +357,11 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
                 sum += val;
                 fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
             }
-            qreal ia = sum*scale;
-            list[IA][index++].setY(ia);
-            updatePhaseCurrent(ia , current[IA] ,  IA);
+            qreal ia = sum*scale.Current;
+            //qDebug() << ia;
+
+            iA[i]=ia;
+
 
         }
         break;
@@ -309,28 +373,98 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
                 sum += val;
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
-            qreal ic = sum*scale;
-            qreal ib = -(list[IA][index].y() + ic);
-            list[IC][index].setY(ic);
-            list[IB][index++].setY(ib);
+            qreal ia = iA[i];
+            qreal ic = sum*scale.Current;
+            qreal ib = -(ia + ic);
+            int fi = angle[i]>>3;
+
+            //power-variant Clarke transform
+            /*X = (2*A – B – C)*(1/3); = 2*IA +( IA + IC )- IC = 3*IA/3;
+            Y = (B – C)*(1/sqrt(3));
+            Z = (A + B + C)*(sqrt(2)/3); =0  */
+            qreal X = ia;
+            qreal Y = (ib-ic)/sqrt(3);
+            qreal theta = N_MAG*2.0*M_PI/8192.0*fi;
+            qreal co = cos(theta);
+            qreal si = sin(theta);
+            //Park transform
+            qreal D = co*X + si*Y;
+            qreal Q = co*Y - si*X;
+            for(int mode=0; mode<2 ; mode++){
+                int o=3*mode;
+                switch(plotMode[mode]){
+                case CurrentIn:
+                    list[o][fi].setY(ia);
+                    list[o+1][fi].setY(ib);
+                    list[o+2][fi].setY(ic);
+                    break;
+                case DiffCurrentIn: //Diff
+                    list[o][fi].setY(ia-ib);
+                    list[o+1][fi].setY(ib-ic);
+                    list[o+2][fi].setY(ic-ia);
+                    break;
+                case AlphaBetaIn:
+                    list[o+0][fi].setY(X);
+                    list[o+1][fi].setY(Y);
+                    break;
+                case DQIn:
+                    list[o+0][fi].setY(D);
+                    list[o+1][fi].setY(Q);
+                    break;
+                default:
+                    break;
+                }
+            }
+            updatePhaseCurrent(ia , current[IA] ,  IA);
             updatePhaseCurrent(ib , current[IB] ,  IB);
             updatePhaseCurrent(ic, current[IC] ,  IC);
 
         }
         break;
     case Torque:
+        break;
     case Flux:
-        for(int i=0; i<(128/DECIMATE) ; i++){
-            int sum=0;
-            for( int d=0; d<DECIMATE ; d++ )
-                sum += block->samples[readPos++];
-            list[plot][index++].setY(sum*scale);
+       break;
+    case U:
+        blockU = block;
+        break;
+    case Angle:
+        for(int mode=0; mode<2 ; mode++){
+            int o=3*mode;
+            switch(plotMode[mode]){
+            case AlphaBetaOut:
+                for(int i=0; i<(128/DECIMATE) ; i++){
+                    int fi = angle[i]>>3;
+                    qreal u = blockU->samples[i*DECIMATE];
+                    qreal a = block->samples[i*DECIMATE];
+                    qreal arg = a*(2.0/6.0*M_PI/(1<<10));
+                    //inverse Park Transform
+                    qreal Q=0;
+                    qreal alpha = scale.U*(u*cos(arg) - Q*sin(arg));
+                    qreal beta =  scale.U*(u*sin(arg) + Q*cos(arg));
+                    list[o][fi].setY( alpha);
+                    list[o+1][fi].setY(beta);
+                }
+                break;
+            case ABCOut:
+                for(int i=0; i<(128/DECIMATE) ; i++){
+                    int fi = angle[i]>>3;
+                    qreal u = blockU->samples[i*DECIMATE];
+                    qreal a = block->samples[i*DECIMATE];
+                    qreal arg = a*(2.0/6.0*M_PI/(1<<10));
+                    qreal UA = scale.U*u*cos(arg);
+                    qreal UB = scale.U*u*cos(arg - (2*M_PI/3));
+                    qreal UC = scale.U*u*cos(arg + (2*M_PI/3));
+                    list[o][fi].setY(UA);
+                    list[o+1][fi].setY(UB);
+                    list[o+2][fi].setY(UC);
+                }
+            }
         }
         break;
      default:
         break;
     }
-    return index;
 }
 
 
@@ -338,21 +472,38 @@ int MainWindow::parse(enum plots_e plot , qreal scale, int index){
 void MainWindow::update_data(){
     while( Fifo->getSize() >= 8){
         Fifo->checkSize();
+        /* XMOS side
+         * struct hispeed_vector_t{
+                    int QE[PKG_SIZE/4];
+                    int IA[PKG_SIZE/4];
+                    int IC[PKG_SIZE/4];
+
+                    int Torque[PKG_SIZE/4];
+                    int Flux[PKG_SIZE/4];
+                    int U[PKG_SIZE/4];
+                    int angle[PKG_SIZE/4];// U*exp(j*angle);
+                };*/
 /*1*/   unsigned block = parse_lowspeed();
-/*2*/   parse(IA , scale.Current , listIndex); //2
-/*3*/   parse(IC , scale.Current , listIndex);
-/*4*/   parse_angle();
-/*5*/   parse(Torque , scale.Torque , listIndex);
-/*6*/   listIndex = parse(Flux   , scale.Flux , listIndex);
+/*2*/   parse_angle();
+/*3*/   parse(IA ); //2
+/*4*/   parse(IC );
+
+/*5*/   //parse(Torque , scale.Torque , listIndex);
+/*6*/   //listIndex = parse(Flux   , scale.Flux , listIndex);
+
 /*7*/   Fifo->read();
 /*8*/   Fifo->read();
+
+
+/*7*/   parse(U);
+/*8*/   parse(Angle);
+
+        listIndex +=128/DECIMATE;
+
         if(listIndex == 128/DECIMATE*ABUFFERS){
             listIndex=0;
-            series[IA].replace(list[IA]);
-            series[IB].replace(list[IB]);
-            series[IC].replace(list[IC]);
-            series[Torque].replace(list[Torque]);
-            series[Flux].replace(list[Flux]);
+            for(int i=0; i<6; i++)
+                series[i].replace(list[i]);
             gaugeWindow->setcurrentGauge(current);
             float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
             gaugeWindow->setShaftSpeed(rpm);
@@ -426,18 +577,21 @@ void MainWindow::calcMLS(){
 }
 
 void MainWindow::currentRange(double current){
-    I_chart-> axisY()->setRange(-current , current);
+    chart1-> axisY()->setRange(-current , current);
+    chart2-> axisY()->setRange(-current , current);
 }
 
 void MainWindow::slot_plotSensitivity(){
-    emit SignalSource(1);
-    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting INPUT -> OUTPUT").arg(FFT_LEN));
+    slot_plotTransferFunction();
+    //emit SignalSource(1);
+    //FFT_chart->setTitle(QString("FFT with size %1").arg(FFT_LEN));
 
 }
 
 void MainWindow::slot_plotTransferFunction(){
     emit SignalSource(0);
-    FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting OUTPUT sensitivity").arg(FFT_LEN));
+    //FFT_chart->setTitle(QString("FFT with size %1 of correlated MLS. Plotting OUTPUT sensitivity").arg(FFT_LEN));
+    FFT_chart->setTitle(QString("Blackman windowed FFT with size %1").arg(FFT_LEN));
 
 }
 
@@ -477,6 +631,93 @@ void MainWindow::slot_signal(){
     FFTseries[FFT_IC].setPen(penC);
     emit SignalGenerator(index);
     qDebug() << index;
+}
+
+void MainWindow::slot_Checkbox(int index){
+    int i=index/plotChoiceN;
+    int o=3*i;
+    int j=index%plotChoiceN;
+    plotMode[i]=j;
+    qDebug()<< "Plotmode:" << i << j;
+    for(int k=0; k<plotChoiceN ; k++){
+        if(k!=j)
+            checkbox[i][k]->setChecked(false);
+        else
+            switch(k){
+            case ABCOut:
+                series[o].setName("Phase A out");
+                series[o+1].setName("Phase B out");
+                series[o+2].setName("Phase C out");
+                series[o+1].show();
+                series[o+1].show();
+                series[o+2].show();
+                if(i)
+                    axisY2->setTitleText("Voltage");
+                else
+                    axisY1->setTitleText("Voltage");
+                break;
+            case AlphaBetaOut:
+                series[o].setName("Alpha out");
+                series[o+1].setName("Beta out");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].hide();
+                if(i)
+                    axisY2->setTitleText("Transformed voltage");
+                else
+                    axisY1->setTitleText("Transformed voltage");
+                break;
+            case CurrentIn:
+                series[o].setName("Phase A");
+                series[o+1].setName("Phase B");
+                series[o+2].setName("Phase C");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].show();
+                if(i)
+                    axisY2->setTitleText("Current [A]");
+                else
+                    axisY1->setTitleText("Current [A]");
+
+                break;
+            case DiffCurrentIn:
+                series[o].setName("Phase A-B");
+                series[o+1].setName("Phase B-C");
+                series[o+2].setName("Phase C-A");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].show();
+                if(i)
+                    axisY2->setTitleText("Current [A]");
+                else
+                    axisY1->setTitleText("Current [A]");
+                break;
+            case AlphaBetaIn:
+                series[o].setName("Alpha in");
+                series[o+1].setName("Beta in");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].hide();
+                if(i)
+                    axisY2->setTitleText("Transformed current");
+                else
+                    axisY1->setTitleText("Transformed current");
+
+                break;
+            case DQIn:
+                series[o].setName("Direct in");
+                series[o+1].setName("Quadrature in");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].hide();
+                if(i)
+                    axisY2->setTitleText("Transformed I [A]");
+                else
+                    axisY1->setTitleText("Transformed I [A]");
+
+                break;
+              }
+    }
 }
 
 MainWindow::~MainWindow()
