@@ -60,6 +60,11 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     addIdrive( &iDrive.NEG_HS , iDrive.layout , "Negative High Side"  , iDrive.current , 2 , 2);
     addIdrive( &iDrive.POS_LS , iDrive.layout , "Positive Low Side"   , iDrive.current , 3 , 1);
     addIdrive( &iDrive.NEG_LS , iDrive.layout , "Negative Low Side"   , iDrive.current , 4 , 2);
+    iDrive.POS_HS.comboBox->setCurrentIndex(1);
+    iDrive.NEG_HS.comboBox->setCurrentIndex(2);
+    iDrive.POS_LS.comboBox->setCurrentIndex(1);
+    iDrive.NEG_LS.comboBox->setCurrentIndex(2);
+
     iDrive.box->setFont(font);
     iDrive.box->setLayout(iDrive.layout);
 
