@@ -28,7 +28,7 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
    button_reset->setFixedWidth(80);
    button_reset->setFixedHeight(30);
    button_reset->setToolTip("Reset fuse");
-   slot_ResetButtonState(false);
+   slot_ResetButtonState(true);
 
    drv8320 = new DRV8320S(this);
 
@@ -60,9 +60,12 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
   connect(knob_fuse       , &Knob::valueChanged        , w    , &MainWindow::currentRange);
   connect(knob_fuse       , &Knob::valueChanged        , w->gaugeWindow->currentGauge , &currentGague::setScale);
   connect(button_reset    , &QPushButton::clicked      , usb  , &USBbulk::sendFuseReset);
-  connect(button_reset    , &QPushButton::clicked      , this , &controlwindow::slot_ResetButtonState);
+  //connect(button_reset    , &QPushButton::clicked      , this , &controlwindow::slot_ResetButtonState);
   connect(w               , &MainWindow::fuseStatus    , this , &controlwindow::slot_ResetButtonState );
   connect(this->drv8320   , &DRV8320S::send_DRV8320S   , usb  , &USBbulk::send_DRV8320S);
+  connect(w               , &MainWindow::set_statusRow    , this->drv8320 , &DRV8320S::set_statusRow);
+  connect(w               , &MainWindow::decode_DRVregs   , this->drv8320 , &DRV8320S::decode_DRVregs);
+
   w->currentRange(knob_fuse->Value());
   w->gaugeWindow->currentGauge->setScale(knob_fuse->Value());
   torque->PI->updateSettingsAndPlot(false);
@@ -73,17 +76,13 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
 
 
 void controlwindow::slot_ResetButtonState(bool state){
-    if(state == fusestate)
-        return;
-    if(state == false){
+    if(state == true){
         button_reset->setIcon(icon_fuseOK);
         button_reset->setStyleSheet("background-color:lightgreen");
-        fusestate = false;
     }
     else{
         button_reset->setIcon(icon_fuseBurnt);
         button_reset->setStyleSheet("background-color:red");
-        fusestate = true;
     }
 }
 

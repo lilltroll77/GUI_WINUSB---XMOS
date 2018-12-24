@@ -63,6 +63,8 @@ signals:
     void SignalSource(int source);
     void SignalGenerator(int index);
     void useXCorr(bool state);
+    void set_statusRow(int row , quint16 val);
+    void decode_DRVregs(void* reg);
 
 public slots:
     void update_data();
@@ -79,6 +81,8 @@ public slots:
 
 private:
     enum signal_e{OFF , MLS18 , RND , SINE , OCTAVE};
+    enum message{SHUTDOWN=1 , DRV_ERROR=2 , DRV_SETTINGS=4 , TEMP_CHANGED=8 , FUSE_CHANGED=16 , LOAD_CHANGED=32 , FUSE_STATE=1<<24 };
+
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
     void updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot);
@@ -95,7 +99,7 @@ private:
     QAction* Signal[5];
     static const int len = 8;
     QList<QPointF> list[2*4];
-    int angle[128/DECIMATE];
+    int angle[128/DECIMATE]={0};
     qreal iA[128/DECIMATE];
     int angle_pos=0;
     QLineSeries series[len];
@@ -146,6 +150,8 @@ private:
     QSignalMapper* signalMapper;
     enum plotMode_e{ABCOut , AlphaBetaOut , CurrentIn , DiffCurrentIn , AlphaBetaIn, DQIn};
     int plotMode[2]={ABCOut , CurrentIn};
+    qint32 oldState=0;
+    int load=0;
 };
 
 #endif // MAINWINDOW_H

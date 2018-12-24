@@ -16,8 +16,8 @@ class USBbulk : public QThread {
 public:
     USBbulk(MainWindow* w, fifo* Fifo);
     ~USBbulk();
-    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , FuseStatus , SignalSource , SignalGenerator,
-                  DRV_VDS , DRV_ODT , DRV_TDRIVE , DRV_IDRIVE_P_HS , DRV_IDRIVE_N_HS , DRV_IDRIVE_P_LS , DRV_IDRIVE_N_LS};
+    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , NewFuse , FuseStatus , SignalSource , SignalGenerator,
+                  DRV_VDS , DRV_ODT , DRV_TDRIVE , DRV_IDRIVE_P_HS , DRV_IDRIVE_N_HS , DRV_IDRIVE_P_LS , DRV_IDRIVE_N_LS , DRV_RESET};
 
 
 signals:
@@ -80,6 +80,7 @@ private:
     const int PID=0x00da;
     //struct USBmem_t* buffer;
     const quint64 pi=3141592543358979324ull;
+    const quint32 codeVersion=2;
     fifo* Fifo;
 
 

@@ -68,8 +68,10 @@ void USBbulk::run(){
         libusb_handle_events(nullptr);
         if(last_actual_length == (8*ABUFFERS*PKG_SIZE)){
             union block_t* mem_block = (union block_t*) &mem[block];
+            //qDebug()<< sizeof(union block_t); 512 bytes
 
             for(int j=0; j< (8*ABUFFERS) ; j++){
+                //qDebug()<<j % 8<<':' <<mem_block->lowSpeed.checknumber;
                 if ( (j % 8)== syncPnt && mem_block->lowSpeed.checknumber != pi ){ // every 8 block should have the check number
                     syncPnt = (syncPnt+1)&7;
                     if(!resync){
@@ -144,9 +146,8 @@ void USBbulk::stop_stream(){
 void  USBbulk::sendFuseReset(){
     struct fuse_t{
         qint32 header;
-        qint32 state;
     };
-    struct fuse_t fuse = {FuseStatus , 1};
+    struct fuse_t fuse = {NewFuse};
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &fuse, sizeof(fuse), &USBbulk::empty_callback  , nullptr , 0);
     libusb_submit_transfer(    Out_transfer);
 

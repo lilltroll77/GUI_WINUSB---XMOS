@@ -12,6 +12,58 @@
 #include <QPushButton>
 #include <QToolTip>
 
+
+struct reg2_t{
+    quint16 _RES:6;
+    quint16 CLR_FLT:1;
+    quint16 BRAKE:1;
+    quint16 COAST:1;
+    quint16 PWM_DIR:1;
+    quint16 PWM_COM :1;
+    quint16 PWM_MODE:2;
+    quint16 OTW_REP:1;
+    quint16 DIS_GDF:1;
+    quint16 DIS_CPUV:1;
+};
+
+struct reg3_t{
+    quint16 _RES:5;
+    quint16 LOCK :3;
+    quint16 IDRIVEN_HS:4;
+    quint16 IDRIVEP_HS:4;
+
+};
+
+struct reg4_t{
+    quint16 _RES:5;
+    quint16 CBC:1;
+    quint16 TDRIVE:2;
+    quint16 IDRIVEP_LS:4;
+    quint16 IDRIVEN_LS:4;
+
+
+};
+
+struct reg5_t{   
+    quint16 TRETRY:1;
+    quint16 DEAD_TIME:2;
+    quint16 OCP_MODE:2;
+    quint16 OCP_DEG:2;
+    quint16 VDS_LVL:4;
+    quint16 _RES:5;
+};
+
+
+struct reg_t{
+    quint16 reg0;
+    quint16 reg1;
+    reg2_t reg2;
+    reg3_t reg3;
+    reg4_t reg4;
+    reg5_t reg5;
+};
+
+
 struct box_t{
    QComboBox* comboBox;
    QLabel* label;
@@ -153,7 +205,10 @@ public slots:
     void set_GateDrivePosLoSide(int index);
     void set_TDrive(int index);
     void set_VDS_LVL(int index);
+    void set_ODT(int index);
     void set_status(int reg , int bit, bool status);
+    void set_statusRow(int row , quint16 val);
+    void decode_DRVregs(void *regptr);
 };
 
 #endif // DRV8320S_H

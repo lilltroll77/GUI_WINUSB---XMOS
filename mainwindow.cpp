@@ -312,34 +312,76 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
 
 void MainWindow::parse_angle(){
     union block_t* block = Fifo->read();
-    int fi;
+    int fi = 0;
     int pos=0;
-    for(int i=DECIMATE/2; i<128 ; i+=DECIMATE){
+    for(int i=0; i<128 ; i+=DECIMATE){
         fi = block->samples[i];
         angle[pos++] = fi;
     }
-    gaugeWindow->setShaftAngle((360.0f/1024.0f)*(fi>>3));
+    gaugeWindow->setShaftAngle((360.0f/8192.0f)*(fi&8191));
 }
-
+/*
+unsigned long long checknumber; //2
+   unsigned version; //3
+   unsigned index; //4
+   unsigned changed; //5
+   unsigned short DSPload;
+   unsigned short temp; //6
+   short unsigned GateDrvStatus[6];// 7 8 9
+   unsigned w; //10
+   unsigned reserved[16-10]; // UPDATE if new line is inserted
+  */
 unsigned MainWindow::parse_lowspeed(){
     union block_t* block = Fifo->read();
-    float temp = block->lowSpeed.temp;
-    fuseStatus(!(bool) block->lowSpeed.states); //XMOS code is inverted
-    int load = 3*block->lowSpeed.DSPload;
-    statusbar->showMessage(QString("DSP-core load=%1%").arg(load/10));
-    gaugeWindow->setTemp(temp);
+    if(block->lowSpeed.changed>0){
+        //LSB 24bit is sensitivity , MSB 8bit is states
+        qint32 changed = (block->lowSpeed.changed & 0xFFFFFF) ^ oldState;
+        oldState = block->lowSpeed.changed;
+        if( changed & SHUTDOWN){
+            qDebug() << "Shutdown";
+            statusbar->showMessage("STOP pressed!");
+            set_statusRow(0, 0xFFF);
+            set_statusRow(1, 0xFFF);
+        }
+        if( changed & DRV_ERROR){
+            emit set_statusRow(0 , block->lowSpeed.GateDrvStatus[0]);
+            emit set_statusRow(1 , block->lowSpeed.GateDrvStatus[1]);
+            qDebug() << "DRV Fault Status Register";
+        }
+        if( changed & DRV_SETTINGS){
+            emit decode_DRVregs(&block->lowSpeed.GateDrvStatus);
+            qDebug() << "DRV Control Registers";
+        }
+        if( changed & TEMP_CHANGED){
+            gaugeWindow->setTemp((float)block->lowSpeed.temp/16.0f);
+            qDebug() << "Temp changed";
+        }
+        if( (changed & FUSE_CHANGED)){
+            bool fuse = (block->lowSpeed.changed & FUSE_STATE) > 0;
+            fuseStatus(fuse);
+            if(fuse)
+                statusbar->showMessage("FUSE GOOD");
+            else
+                statusbar->showMessage("FUSE BURNED OUT");
+
+            }
+        //if( changed & LOAD_CHANGED)
+            //statusbar->showMessage(QString("DSP-core load=%1%").arg((100*block->lowSpeed.DSPload)/666));
+    }
+    float w  = block->lowSpeed.w;
+    float rpm = 6.0E9f/w;
+    //qDebug()<<"Main:"<< rpm;
+    gaugeWindow->setShaftSpeed( rpm );
     return block->lowSpeed.index;
 }
 
 void MainWindow::updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot){
+    i=abs(i);
     if(i >MAX_CURRRENT)
         i = MAX_CURRRENT;
-    else if(i < - MAX_CURRRENT)
-        i = -MAX_CURRRENT;
     current.RMS = filter(i*i, plot);
-    qreal absI=abs(i);
-    if(absI >  current.peak)
-        current.peak = absI;
+    if(i >  current.peak)
+        current.peak = i;
     else
         current.peak -=20*(dt/1000);
 
@@ -376,7 +418,7 @@ void MainWindow::parse(enum plots_e plot){
             qreal ia = iA[i];
             qreal ic = sum*scale.Current;
             qreal ib = -(ia + ic);
-            int fi = angle[i]>>3;
+            int fi = (angle[i]>>3)&1023;
 
             //power-variant Clarke transform
             /*X = (2*A – B – C)*(1/3); = 2*IA +( IA + IC )- IC = 3*IA/3;
@@ -434,7 +476,7 @@ void MainWindow::parse(enum plots_e plot){
             switch(plotMode[mode]){
             case AlphaBetaOut:
                 for(int i=0; i<(128/DECIMATE) ; i++){
-                    int fi = angle[i]>>3;
+                    int fi = (angle[i]>>3)&1023;
                     qreal u = blockU->samples[i*DECIMATE];
                     qreal a = block->samples[i*DECIMATE];
                     qreal arg = a*(2.0/6.0*M_PI/(1<<10));
@@ -448,7 +490,7 @@ void MainWindow::parse(enum plots_e plot){
                 break;
             case ABCOut:
                 for(int i=0; i<(128/DECIMATE) ; i++){
-                    int fi = angle[i]>>3;
+                    int fi = (angle[i]>>3)&1023;
                     qreal u = blockU->samples[i*DECIMATE];
                     qreal a = block->samples[i*DECIMATE];
                     qreal arg = a*(2.0/6.0*M_PI/(1<<10));
@@ -472,29 +514,12 @@ void MainWindow::parse(enum plots_e plot){
 void MainWindow::update_data(){
     while( Fifo->getSize() >= 8){
         Fifo->checkSize();
-        /* XMOS side
-         * struct hispeed_vector_t{
-                    int QE[PKG_SIZE/4];
-                    int IA[PKG_SIZE/4];
-                    int IC[PKG_SIZE/4];
-
-                    int Torque[PKG_SIZE/4];
-                    int Flux[PKG_SIZE/4];
-                    int U[PKG_SIZE/4];
-                    int angle[PKG_SIZE/4];// U*exp(j*angle);
-                };*/
 /*1*/   unsigned block = parse_lowspeed();
 /*2*/   parse_angle();
-/*3*/   parse(IA ); //2
+/*3*/   parse(IA );
 /*4*/   parse(IC );
-
-/*5*/   //parse(Torque , scale.Torque , listIndex);
-/*6*/   //listIndex = parse(Flux   , scale.Flux , listIndex);
-
-/*7*/   Fifo->read();
-/*8*/   Fifo->read();
-
-
+/*5*/   Fifo->read();
+/*6*/   Fifo->read();
 /*7*/   parse(U);
 /*8*/   parse(Angle);
 

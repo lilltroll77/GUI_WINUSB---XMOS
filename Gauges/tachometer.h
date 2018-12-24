@@ -29,7 +29,8 @@ private:
     QcLabelItem* temp_label;
     const QString label_str = "RPM x1000";
     int bkg_colorstate=0;
-    float maxRPM = 3000;
+    float maxRPM = 3000.0f; //RPMx1000
+    float oldSpeed=0;
 
 };
 

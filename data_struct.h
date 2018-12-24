@@ -38,11 +38,14 @@ struct blockC_t{
    quint64 checknumber; //1-2
    quint32 version; //3
    quint32 index;  //4
-   float temp; //5
-   qint32 states; //6;
-   qint32 DSPload; //6;
-   quint32 reserved[16-7]; // UPDATE if new line is inserted
+   qint32 changed; //5
+   quint16 DSPload; // 5½
+   quint16 temp; //6
+   quint16 GateDrvStatus[6];// 7 8 9
+   quint32 w; //10
+   quint32 reserved[16-10]; // UPDATE if new line is inserted
 };
+
 
 //512 bytes
 union block_t{
@@ -61,11 +64,7 @@ struct hispeed_vector_t{
 };
 
 struct USBmem_t{
-    quint64 checknumber; //2
-    quint32 version; //3
-    quint32 index;  //4
-    float temp; //5
-    quint32 reserved[16-5];
+    struct blockC_t low;
     struct midspeed_vecotr_t mid;
     struct hispeed_vector_t fast;
 };

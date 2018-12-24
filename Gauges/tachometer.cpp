@@ -1,10 +1,11 @@
 #include "tachometer.h"
+#include <QDebug>
 
 tachometer::tachometer(QWidget *parent) : QWidget(parent)
 {
 
     // prevent round floor of maxRPM
-    maxRPM += 0.01;
+    maxRPM += 0.01f;
 
     //widget
         widget = new QcGaugeWidget(parent);
@@ -51,5 +52,16 @@ tachometer::tachometer(QWidget *parent) : QWidget(parent)
 }
 
 void tachometer::setSpeed(float RPM){
-    needle->setCurrentValue(100*RPM/maxRPM);
+    float percent = (100.0f/maxRPM)*RPM;
+    needle->setCurrentValue(percent);
+    /*
+    qDebug()<<"Tacho:" <<RPM << percent;
+    if(percent > 95.0f)
+        percent =95.0f;
+    if(percent != oldSpeed){
+        needle->setCurrentValue(percent);
+        oldSpeed = percent;
+        qDebug()<<percent << RPM;
+    }
+*/
 }

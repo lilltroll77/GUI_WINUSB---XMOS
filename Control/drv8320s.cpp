@@ -60,11 +60,12 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     addIdrive( &iDrive.NEG_HS , iDrive.layout , "Negative High Side"  , iDrive.current , 2 , 2);
     addIdrive( &iDrive.POS_LS , iDrive.layout , "Positive Low Side"   , iDrive.current , 3 , 1);
     addIdrive( &iDrive.NEG_LS , iDrive.layout , "Negative Low Side"   , iDrive.current , 4 , 2);
+    /*
     iDrive.POS_HS.comboBox->setCurrentIndex(1);
     iDrive.NEG_HS.comboBox->setCurrentIndex(2);
     iDrive.POS_LS.comboBox->setCurrentIndex(1);
     iDrive.NEG_LS.comboBox->setCurrentIndex(2);
-
+*/
     iDrive.box->setFont(font);
     iDrive.box->setLayout(iDrive.layout);
 
@@ -199,12 +200,44 @@ void DRV8320S::set_TDrive(int index){
     box->blockSignals(blocked);
 }
 
+void DRV8320S::set_ODT(int index){
+   QComboBox* box = ODT.combo.comboBox;
+   bool blocked = box->signalsBlocked();
+   box->blockSignals(true);
+   box->setCurrentIndex(index);
+   box->blockSignals(blocked);
+}
+
 void DRV8320S::set_VDS_LVL(int index){
     QComboBox* box = VDS.combo.comboBox;
     bool blocked = box->signalsBlocked();
     box->blockSignals(true);
     box->setCurrentIndex(index);
     box->blockSignals(blocked);
+}
+
+void DRV8320S::decode_DRVregs(void* regptr){
+    quint16* reg = (quint16*)regptr;
+    qDebug() << QString().sprintf("%x, %x ,%x", reg[3], reg[4] , reg[5]);
+    //qDebug() <<"Low side" <<reg->reg4.IDRIVEN_LS << reg->reg4.IDRIVEP_LS;
+    //qDebug() <<"LVL" << reg->reg5.VDS_LVL;
+    set_GateDriveNegHiSide( reg[3] &0xF);
+    set_GateDrivePosHiSide( (reg[3]>>4) &0xF);
+    set_GateDriveNegLoSide( reg[4] &0xF);
+    set_GateDrivePosLoSide( (reg[4]>>4) &0xF);
+    set_VDS_LVL(reg[5] &0xF);
+    set_TDrive((reg[5]>>8) &0x3);
+    set_ODT((reg[5]>>4) &0x3);
+
+ }
+
+void DRV8320S::set_statusRow(int row , quint16 val){
+    if(row>1){
+        qDebug() << "ERROR in set_statusRow";
+        return;
+    }
+    for(int i=0; i<10 ; i++)
+        set_status(row , i , (bool)(val>>i)&1);
 }
 
 void DRV8320S::set_status(int reg , int bit, bool status){
@@ -215,14 +248,14 @@ void DRV8320S::set_status(int reg , int bit, bool status){
     else
         error_buttons[reg][9-bit]->setStyleSheet(stylesheet_ok);
 
-    error_buttons[1][0]->setStyleSheet(stylesheet_ok);
+    //error_buttons[1][0]->setStyleSheet(stylesheet_ok);
 
 
 
 }
 
 void DRV8320S::DRV_reset(bool state){
-    emit DRV_reset(state);
+    emit send_DRV8320S(USBbulk::DRV_RESET , state);
 }
 
 void DRV8320S::slot_ODTChanged(int index){
