@@ -1,6 +1,19 @@
 #include "drv8320s.h"
 #include "usbbulk.h"
 
+#define HISIDE_REG 3
+#define LOSIDE_REG 4
+#define TDRIVE_REG 4
+#define DEAD_TIME_REG 5
+#define OCP_DEG_REG 5
+#define VDS_LVL_REG 5
+
+
+static inline int get_bitfield(quint32 y, quint32 shift, quint32 len)
+{
+    return (y>>shift) & ((1<<len)-1);
+}
+
 void addIdrive(box_t *gate , QGridLayout *layout, QString str  ,const unsigned short current[16] , int col , int mult){
     gate->comboBox = new QComboBox;
     gate->comboBox->setMaximumWidth(100);
@@ -74,10 +87,10 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     tDrive.layout = new QVBoxLayout();
     tDrive.layout->setAlignment(Qt::AlignHCenter);
     tDrive.box = new QGroupBox();
-    tDrive.box->setTitle("T Drive settings");
+    tDrive.box->setTitle("Peak gate-current drive time");
     tDrive.combo.comboBox = new QComboBox;
     tDrive.combo.comboBox->setMaximumWidth(100);
-    tDrive.combo.label = new QLabel("Minimum dead time");
+    //tDrive.combo.label = new QLabel("Peak gate-current drive time");
     for(int i=0; i<4 ; i++){
         QString str = QString("%1 ns").arg(tDrive.delay[i]);
         tDrive.combo.comboBox->addItem(str ,  i);
@@ -86,25 +99,41 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     tDrive.layout->addWidget( tDrive.combo.comboBox);
     tDrive.box->setFont(font);
     tDrive.box->setLayout(tDrive.layout);
-    tDrive.box->setMaximumWidth(150);
+    tDrive.box->setMaximumWidth(250);
 
-    // ODT
-    ODT.layout = new QVBoxLayout(this);
-    ODT.layout->setAlignment(Qt::AlignBottom);
-    ODT.box = new QGroupBox();
-    ODT.box->setTitle("Overcurrent deglitch time");
-    ODT.combo.comboBox = new QComboBox;
-    ODT.combo.comboBox->setMaximumWidth(100);
+    // OCP_DEG
+    OCP_DEG.layout = new QVBoxLayout(this);
+    OCP_DEG.layout->setAlignment(Qt::AlignBottom);
+    OCP_DEG.box = new QGroupBox();
+    OCP_DEG.box->setTitle("Overcurrent deglitch time");
+    OCP_DEG.combo.comboBox = new QComboBox;
+    OCP_DEG.combo.comboBox->setMaximumWidth(100);
     for(int i=0; i<4 ; i++){
-        QString str = QString("%1 us").arg(ODT.delay[i]);
-        ODT.combo.comboBox->addItem(str ,  i);
+        QString str = QString("%1 us").arg(OCP_DEG.delay[i]);
+        OCP_DEG.combo.comboBox->addItem(str ,  i);
     }
 
-    ODT.layout->addWidget(ODT.combo.comboBox);
-    ODT.box->setFont(font);
-    ODT.box->setLayout(ODT.layout);
+    OCP_DEG.layout->addWidget(OCP_DEG.combo.comboBox);
+    OCP_DEG.box->setFont(font);
+    OCP_DEG.box->setLayout(OCP_DEG.layout);
     //ODT.box->setMaximumWidth(175);
 
+    //Deadtime
+    Deadtime.layout = new QVBoxLayout(this);
+    Deadtime.box = new QGroupBox();
+    Deadtime.layout->setAlignment(Qt::AlignHCenter);
+    Deadtime.box->setTitle("Dead time");
+    Deadtime.combo.comboBox = new QComboBox;
+    Deadtime.combo.comboBox->setMaximumWidth(100);
+    for(int i=0; i<4 ; i++){
+        QString str = QString("%1 ns").arg(Deadtime.delay[i]);
+        Deadtime.combo.comboBox->addItem(str ,  i);
+    }
+    Deadtime.layout->addWidget( Deadtime.combo.label);
+    Deadtime.layout->addWidget( Deadtime.combo.comboBox);
+    Deadtime.box->setFont(font);
+    Deadtime.box->setLayout(Deadtime.layout);
+    Deadtime.box->setMaximumWidth(150);
 
     //VDS
     VDS.layout = new QVBoxLayout(this);
@@ -126,8 +155,9 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     masterLayout->addWidget(buttonBox , 0 , 1 ,1 , 4);
     masterLayout->addWidget(iDrive.box , 1 ,1 ,1,3);
     masterLayout->addWidget(tDrive.box , 2 ,1 );
-    masterLayout->addWidget(ODT.box , 2 , 2  );
+    masterLayout->addWidget(OCP_DEG.box , 2 , 2  );
     masterLayout->addWidget(VDS.box ,2 ,3);
+    masterLayout->addWidget(Deadtime.box , 2, 4);
     masterBox->setLayout(masterLayout);
     masterBox->setTitle("DRV8320S settings");
     font.setBold(true);
@@ -137,8 +167,9 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     this->setLayout(&top_layout);
 
     connect(VDS.combo.comboBox,     SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_VDSChanged(int)) );
-    connect(ODT.combo.comboBox,     SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_ODTChanged(int)) );
+    connect(OCP_DEG.combo.comboBox,     SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_OCP_DEGChanged(int)) );
     connect(tDrive.combo.comboBox,  SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_TdriveChanged(int)));
+    connect(Deadtime.combo.comboBox,  SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_DeadtimeChanged(int)) );
     connect(iDrive.POS_HS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_P_HS(int)));
     connect(iDrive.NEG_HS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_N_HS(int)));
     connect(iDrive.POS_LS.comboBox ,SIGNAL(currentIndexChanged(int))   , this, SLOT(slot_IDrive_P_LS(int)));
@@ -200,8 +231,16 @@ void DRV8320S::set_TDrive(int index){
     box->blockSignals(blocked);
 }
 
-void DRV8320S::set_ODT(int index){
-   QComboBox* box = ODT.combo.comboBox;
+void DRV8320S::set_Deadtime(int index){
+    QComboBox* box = Deadtime.combo.comboBox;
+    bool blocked = box->signalsBlocked();
+    box->blockSignals(true);
+    box->setCurrentIndex(index);
+    box->blockSignals(blocked);
+}
+
+void DRV8320S::set_OCP_DEG(int index){
+   QComboBox* box = OCP_DEG.combo.comboBox;
    bool blocked = box->signalsBlocked();
    box->blockSignals(true);
    box->setCurrentIndex(index);
@@ -218,17 +257,18 @@ void DRV8320S::set_VDS_LVL(int index){
 
 void DRV8320S::decode_DRVregs(void* regptr){
     quint16* reg = (quint16*)regptr;
-    qDebug() << QString().sprintf("%x, %x ,%x", reg[3], reg[4] , reg[5]);
+    qDebug() << QString().sprintf("Reg3=%x, Reg4=%x , Reg5=%x", reg[3], reg[4] , reg[5]);
     //qDebug() <<"Low side" <<reg->reg4.IDRIVEN_LS << reg->reg4.IDRIVEP_LS;
     //qDebug() <<"LVL" << reg->reg5.VDS_LVL;
-    set_GateDriveNegHiSide( reg[3] &0xF);
-    set_GateDrivePosHiSide( (reg[3]>>4) &0xF);
-    set_GateDriveNegLoSide( reg[4] &0xF);
-    set_GateDrivePosLoSide( (reg[4]>>4) &0xF);
-    set_VDS_LVL(reg[5] &0xF);
-    set_TDrive((reg[5]>>8) &0x3);
-    set_ODT((reg[5]>>4) &0x3);
 
+    set_GateDrivePosHiSide( get_bitfield(reg[HISIDE_REG], 4, 4));
+    set_GateDriveNegHiSide( get_bitfield(reg[HISIDE_REG], 0, 4));
+    set_GateDrivePosLoSide( get_bitfield(reg[LOSIDE_REG], 4, 4));
+    set_GateDriveNegLoSide( get_bitfield(reg[LOSIDE_REG], 0, 4));
+    set_TDrive(             get_bitfield(reg[TDRIVE_REG], 8 , 2));
+    set_Deadtime(           get_bitfield(reg[DEAD_TIME_REG] , 8 , 2));
+    set_OCP_DEG(            get_bitfield(reg[OCP_DEG_REG] , 6 , 2));
+    set_VDS_LVL(            get_bitfield(reg[VDS_LVL_REG] , 0  , 4));
  }
 
 void DRV8320S::set_statusRow(int row , quint16 val){
@@ -258,8 +298,12 @@ void DRV8320S::DRV_reset(bool state){
     emit send_DRV8320S(USBbulk::DRV_RESET , state);
 }
 
-void DRV8320S::slot_ODTChanged(int index){
-    emit send_DRV8320S(USBbulk::DRV_ODT , index);
+void DRV8320S::slot_OCP_DEGChanged(int index){
+    emit send_DRV8320S(USBbulk::DRV_OCP_DEG , index);
+}
+
+void DRV8320S::slot_DeadtimeChanged(int index){
+    emit send_DRV8320S(USBbulk::DRV_DEADTIME , index);
 }
 
 void DRV8320S::slot_TdriveChanged(int index){
@@ -267,7 +311,7 @@ void DRV8320S::slot_TdriveChanged(int index){
 }
 
 void DRV8320S::slot_VDSChanged(int index){
-    emit send_DRV8320S(USBbulk::DRV_VDS , index);
+    emit send_DRV8320S(USBbulk::DRV_VDS_LVL , index);
 }
 
 void DRV8320S::slot_IDrive_P_HS(int index){

@@ -70,14 +70,21 @@ struct box_t{
 
 };
 
-struct DRV8320S_tdrive_t{
+struct DRV8320S_TDRIVE_t{
     box_t combo;
     QVBoxLayout* layout;
     QGroupBox* box;
     const unsigned short delay[4]={500 , 1000 , 2000 , 4000};
 };
 
-struct DRV8320S_ODT_t{
+struct DRV8320S_DEADTIME_t{
+    box_t combo;
+    QVBoxLayout* layout;
+    QGroupBox* box;
+    const unsigned short delay[4]={50 , 100 , 200 , 400};
+};
+
+struct DRV8320S_OCP_DEG_t{
     box_t combo;
     QVBoxLayout* layout;
     QGroupBox* box;
@@ -120,8 +127,9 @@ class DRV8320S : public QWidget
 public:
     explicit DRV8320S(QWidget *parent = nullptr );
     DRV8320S_idrive_t iDrive;
-    DRV8320S_tdrive_t tDrive;
-    DRV8320S_ODT_t ODT;
+    DRV8320S_TDRIVE_t tDrive;
+    DRV8320S_DEADTIME_t Deadtime;
+    DRV8320S_OCP_DEG_t OCP_DEG;
     DRV8320S_VDS_t VDS;
     QGridLayout* masterLayout;
     QGroupBox* masterBox;
@@ -173,13 +181,11 @@ public:
         "Reset"
   }};
 
-
-
-
 private slots:
     void slot_VDSChanged(int);
-    void slot_ODTChanged(int);
+    void slot_OCP_DEGChanged(int);
     void slot_TdriveChanged(int);
+    void slot_DeadtimeChanged(int);
     void slot_IDrive_P_HS(int);
     void slot_IDrive_N_HS(int);
     void slot_IDrive_P_LS(int);
@@ -205,7 +211,8 @@ public slots:
     void set_GateDrivePosLoSide(int index);
     void set_TDrive(int index);
     void set_VDS_LVL(int index);
-    void set_ODT(int index);
+    void set_OCP_DEG(int index);
+    void set_Deadtime(int index);
     void set_status(int reg , int bit, bool status);
     void set_statusRow(int row , quint16 val);
     void decode_DRVregs(void *regptr);
