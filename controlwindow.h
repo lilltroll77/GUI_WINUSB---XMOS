@@ -34,6 +34,7 @@ private:
     EQChannel* flux;
     bodeplot* bode;
     Knob* knob_fuse;
+    Knob* knob_amp;
     QPushButton* button_reset;
     QIcon icon_fuseOK;
     QIcon icon_fuseBurnt;

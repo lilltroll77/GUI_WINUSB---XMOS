@@ -16,7 +16,7 @@ class USBbulk : public QThread {
 public:
     USBbulk(MainWindow* w, fifo* Fifo);
     ~USBbulk();
-    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , NewFuse , FuseStatus , SignalSource , SignalGenerator,
+    enum message_e{streamIN, PIsection , EQsection , resetPI , resetEQsec , resetEQ , FuseCurrent , NewFuse , FuseStatus , SignalSource , SignalGenerator, PWMmod ,
                    DRV_IDRIVE_P_HS , DRV_IDRIVE_N_HS,
                    DRV_TDRIVE, DRV_IDRIVE_P_LS , DRV_IDRIVE_N_LS ,
                    DRV_DEADTIME , DRV_OCP_DEG , DRV_VDS_LVL ,
@@ -35,6 +35,7 @@ public slots:
      void sendEQsettings(EQ_section_t &EQ , int channel , int section );
      void resetPIintegrator(int channel);
      void sendFuseCurrent(float current);
+     void sendModulation(float pwmf);
      void sendFuseReset();
      void sendSignalSource(int source);
      void sendSignalGenerator(int index);

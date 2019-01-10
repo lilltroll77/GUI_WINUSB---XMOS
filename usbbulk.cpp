@@ -164,6 +164,17 @@ void::USBbulk::sendFuseCurrent(float current){
     //qDebug() << fuse.current;
 }
 
+void::USBbulk::sendModulation(float pwmf){
+    struct pwm_t{
+        qint32 header;
+        qint32 pwm;
+    };
+    qint32 pwm = pwmf;
+    struct pwm_t modulation = {PWMmod , pwm};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &modulation, sizeof(modulation), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+}
+
 void USBbulk::sendSignalSource(int source){
     quint32 data[2] = {SignalSource , (quint32) source};
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);

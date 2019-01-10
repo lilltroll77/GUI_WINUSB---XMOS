@@ -20,6 +20,15 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
    knob_fuse->setDecimals(1);
    knob_fuse->setKnobColor("rgb(255, 200, 0)");
 
+    knob_amp = new Knob(linScale , this , true );
+    knob_amp->setFixedWidth(100);
+    knob_amp->setTitle("Modulation [%]");
+    knob_amp->setToolTip("Output voltage modulation");
+    knob_amp->setRange(-100 , 100 , 200);
+    knob_amp->setValue(0);
+    knob_amp->setDecimals(0);
+    knob_amp->setKnobColor("rgb(200, 212, 225)");
+
 
    button_reset = new QPushButton(this);
    icon_fuseOK.addFile(":/images/FuseOK.png");
@@ -34,10 +43,11 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
 
   top_layout->addWidget(torque, 0 , 0 , 1 , 2);
   top_layout->addWidget(flux ,  0 , 2);
-  top_layout->addWidget(bode  , 0 , 3);
+  top_layout->addWidget(bode  , 0 , 4);
   top_layout->addWidget(knob_fuse , 1 , 0 , Qt::AlignRight);
   top_layout->addWidget(button_reset , 1 , 1 , Qt::AlignLeft);
-  top_layout->addWidget(drv8320->masterBox , 1 , 2 ,2,2);
+  top_layout->addWidget(knob_amp , 1 , 2 , Qt::AlignLeft);
+  top_layout->addWidget(drv8320->masterBox , 1 , 3 ,2,2);
 
   groupbox = new QGroupBox(this);
   groupbox->setLayout(top_layout);
@@ -57,6 +67,7 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
 
   }
   connect(knob_fuse       , &Knob::valueChanged        , usb  , &USBbulk::sendFuseCurrent);
+  connect(knob_amp        , &Knob::valueChanged        , usb   , &USBbulk::sendModulation);
   connect(knob_fuse       , &Knob::valueChanged        , w    , &MainWindow::currentRange);
   connect(knob_fuse       , &Knob::valueChanged        , w->gaugeWindow->currentGauge , &currentGague::setScale);
   connect(button_reset    , &QPushButton::clicked      , usb  , &USBbulk::sendFuseReset);
@@ -83,6 +94,9 @@ void controlwindow::slot_ResetButtonState(bool state){
     else{
         button_reset->setIcon(icon_fuseBurnt);
         button_reset->setStyleSheet("background-color:red");
+        knob_amp->blockSignals(true);
+        knob_amp->setValue(0);
+        knob_amp->blockSignals(false);
     }
 }
 
