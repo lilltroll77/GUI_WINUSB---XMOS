@@ -13,7 +13,7 @@ controlwindow::controlwindow(USBbulk* usb , MainWindow* w , QWidget *parent ) : 
 
   knob_fuse = new Knob(linScale , this , true);
   knob_fuse->setFixedWidth(100);
-   knob_fuse->setTitle("Scales plot");
+   knob_fuse->setTitle("Scales I plot");
    knob_fuse->setToolTip("Fuse current is disabled. Only scales plots");
    knob_fuse->setRange(0.25 , 32 , 128);
    knob_fuse->setValue(20);
