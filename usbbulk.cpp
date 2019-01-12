@@ -175,6 +175,17 @@ void::USBbulk::sendModulation(float pwmf){
     libusb_submit_transfer(    Out_transfer);
 }
 
+void::USBbulk::sendTrimAngle(float anglef){
+    struct angle_t{
+        qint32 header;
+        qint32 QEangle;
+    };
+    qint32 angle = (8192.0f/360.0f)*anglef;
+    struct angle_t TrimAngle = {QEtrim , angle};
+    libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) &TrimAngle, sizeof(TrimAngle), &USBbulk::empty_callback  , nullptr , 0);
+    libusb_submit_transfer(    Out_transfer);
+}
+
 void USBbulk::sendSignalSource(int source){
     quint32 data[2] = {SignalSource , (quint32) source};
     libusb_fill_bulk_transfer( Out_transfer, handle, XMOS_BULK_EP_OUT ,(unsigned char*) data, sizeof(data), &USBbulk::empty_callback  , nullptr , 0);

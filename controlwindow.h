@@ -35,6 +35,7 @@ private:
     bodeplot* bode;
     Knob* knob_fuse;
     Knob* knob_amp;
+    Knob* knob_trimAngle;
     QPushButton* button_reset;
     QIcon icon_fuseOK;
     QIcon icon_fuseBurnt;
