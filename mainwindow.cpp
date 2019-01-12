@@ -418,7 +418,7 @@ void MainWindow::parse(enum plots_e plot){
             qreal ia = iA[i];
             qreal ic = sum*scale.Current;
             qreal ib = -(ia + ic);
-            int fi = (angle[i]>>3)&1023;
+            qreal fi = (angle[i]>>3)&1023;
 
             //power-variant Clarke transform
             /*X = (2*A – B – C)*(1/3); = 2*IA +( IA + IC )- IC = 3*IA/3;
@@ -426,7 +426,7 @@ void MainWindow::parse(enum plots_e plot){
             Z = (A + B + C)*(sqrt(2)/3); =0  */
             qreal X = ia;
             qreal Y = (ib-ic)/sqrt(3);
-            qreal theta = N_MAG*2.0*M_PI/8192.0*fi;
+            qreal theta = N_MAG*2.0*M_PI*angle[i]/8192.0;
             qreal co = cos(theta);
             qreal si = sin(theta);
             //Park transform
