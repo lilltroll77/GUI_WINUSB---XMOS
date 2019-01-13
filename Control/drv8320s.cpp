@@ -90,7 +90,7 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     tDrive.box->setTitle("Peak gate-current drive time");
     tDrive.combo.comboBox = new QComboBox;
     tDrive.combo.comboBox->setMaximumWidth(100);
-    //tDrive.combo.label = new QLabel("Peak gate-current drive time");
+    tDrive.combo.label = new QLabel("Peak gate-current drive time");
     for(int i=0; i<4 ; i++){
         QString str = QString("%1 ns").arg(tDrive.delay[i]);
         tDrive.combo.comboBox->addItem(str ,  i);
@@ -125,6 +125,7 @@ DRV8320S::DRV8320S(QWidget *parent) : QWidget(parent)
     Deadtime.box->setTitle("Dead time");
     Deadtime.combo.comboBox = new QComboBox;
     Deadtime.combo.comboBox->setMaximumWidth(100);
+    Deadtime.combo.label = new QLabel("Dead time");
     for(int i=0; i<4 ; i++){
         QString str = QString("%1 ns").arg(Deadtime.delay[i]);
         Deadtime.combo.comboBox->addItem(str ,  i);

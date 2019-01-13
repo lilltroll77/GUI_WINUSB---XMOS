@@ -40,9 +40,14 @@ MainWindow::MainWindow(fifo* fifo_ptr , QWidget *parent) :
          checkbox[i][DiffCurrentIn]->setToolTip("Phase diff currents");
          checkbox[i][AlphaBetaIn]= new QCheckBox( "->ab" ,this);
          checkbox[i][AlphaBetaIn]->setFont(QFont("Symbol"));
-         checkbox[i][AlphaBetaIn]->setToolTip("Alpha-Beta feedback");
+         checkbox[i][AlphaBetaIn]->setToolTip("Alpha-Beta input");
          checkbox[i][DQIn]= new QCheckBox( "->DQ" ,this);
-         checkbox[i][DQIn]->setToolTip("Direct-Quadrature feedback");
+         checkbox[i][DQIn]->setToolTip("Direct-Quadrature input calculated with host floatingpoint");
+         checkbox[i][DQIn_fix]= new QCheckBox( "->DQf" ,this);
+         checkbox[i][DQIn_fix]->setToolTip("Direct-Quadrature input calculated with XMOS fixed point");
+         checkbox[i][SpaceVector]= new QCheckBox( "->SV" ,this);
+         checkbox[i][SpaceVector]->setToolTip("Space Vector output calculated with XMOS fixed point");
+
          choiceBox[i] = new QGroupBox(this);
          layoutBox[i] = new QVBoxLayout(this);
          for(int j=0; j<plotChoiceN ; j++){
@@ -310,13 +315,24 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
     return (float)y;
 }
 
+double MainWindow::Decimate(qint32* x , double z[2]){
+    double y = 0.0;
+    for(int i=0; i<DECIMATE ; i++){
+        double X = x[i];
+        y = B[0]*X + z[0];
+        z[0] = B[1]*X - A[0]*y + z[1];
+        z[1] = B[2]*X - A[1]*y;
+    }
+    return y;
+}
+
 void MainWindow::parse_angle(){
     union block_t* block = Fifo->read();
     int fi = 0;
     int pos=0;
     for(int i=0; i<128 ; i+=DECIMATE){
         fi = block->samples[i];
-        angle[pos++] = fi;
+        QEangle[pos++] = fi;
     }
     gaugeWindow->setShaftAngle((360.0f/8192.0f)*(fi&8191));
 }
@@ -365,8 +381,8 @@ unsigned MainWindow::parse_lowspeed(){
                 statusbar->showMessage("FUSE BURNED OUT");
 
             }
-        //if( changed & LOAD_CHANGED)
-            //statusbar->showMessage(QString("DSP-core load=%1%").arg((100*block->lowSpeed.DSPload)/666));
+        if( changed & LOAD_CHANGED)
+            statusbar->showMessage(QString("DSP-core clocks=%1").arg(block->lowSpeed.DSPload));
     }
     float w  = block->lowSpeed.w;
     float rpm = 6.0E9f/w;
@@ -393,45 +409,40 @@ void MainWindow::parse(enum plots_e plot){
     switch(plot){
     case IA:
         for(int i=0; i<(128/DECIMATE) ; i++){
-            int sum=0;
+            iA[i] = scale.Current * Decimate(&block->samples[i] , Z[IA]);
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block->samples[readPos++];
-                sum += val;
                 fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
             }
-            qreal ia = sum*scale.Current;
-            //qDebug() << ia;
-
-            iA[i]=ia;
-
-
         }
         break;
    case IC:
         for(int i=0; i<(128/DECIMATE) ; i++){
-            int sum=0;
+            qreal ic = scale.Current * Decimate(&block->samples[i] , Z[IC]);
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block->samples[readPos++];
-                sum += val;
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
             }
             qreal ia = iA[i];
-            qreal ic = sum*scale.Current;
             qreal ib = -(ia + ic);
-            qreal fi = (angle[i]>>3)&1023;
+            qreal fi = (QEangle[i]>>3)&1023;
 
             //power-variant Clarke transform
             /*X = (2*A – B – C)*(1/3); = 2*IA +( IA + IC )- IC = 3*IA/3;
             Y = (B – C)*(1/sqrt(3));
             Z = (A + B + C)*(sqrt(2)/3); =0  */
-            qreal X = ia;
-            qreal Y = (ib-ic)/sqrt(3);
-            qreal theta = N_MAG*2.0*M_PI*angle[i]/8192.0;
-            qreal co = cos(theta);
-            qreal si = sin(theta);
-            //Park transform
-            qreal D = co*X + si*Y;
-            qreal Q = co*Y - si*X;
+            qreal ALFA = ia;
+            const qreal Betascale = 1/sqrt(3);
+            qreal BETA = (ib-ic)*Betascale;
+            qreal D = 0.0 , Q = 0.0;
+            if((plotMode[0] == DQIn) || (plotMode[1] == DQIn)){
+                qreal theta = (N_MAG*2.0*M_PI/8192.0)*QEangle[i];
+                qreal co = cos(theta);
+                qreal si = sin(theta);
+                //Park transform
+                D = co*ALFA + si*BETA;
+                Q = co*BETA - si*ALFA;
+            }
             for(int mode=0; mode<2 ; mode++){
                 int o=3*mode;
                 switch(plotMode[mode]){
@@ -446,8 +457,8 @@ void MainWindow::parse(enum plots_e plot){
                     list[o+2][fi].setY(ic-ia);
                     break;
                 case AlphaBetaIn:
-                    list[o+0][fi].setY(X);
-                    list[o+1][fi].setY(Y);
+                    list[o+0][fi].setY(ALFA);
+                    list[o+1][fi].setY(BETA);
                     break;
                 case DQIn:
                     list[o+0][fi].setY(D);
@@ -464,11 +475,53 @@ void MainWindow::parse(enum plots_e plot){
         }
         break;
     case Torque:
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int fi = (QEangle[i]>>3)&1023;
+            qreal Q = scale.Torque * Decimate(&block->samples[i] , Z[Torque]);
+            for(int mode=0; mode<2 ; mode++){
+                int o=3*mode;
+                switch(plotMode[mode]){
+                case DQIn_fix:
+                    list[o+1][fi].setY(Q);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
         break;
     case Flux:
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int fi = (QEangle[i]>>3)&1023;
+            qreal D = scale.Flux * Decimate(&block->samples[i] , Z[Flux]);
+            for(int mode=0; mode<2 ; mode++){
+                int o=3*mode;
+                switch(plotMode[mode]){
+                case DQIn_fix:
+                    list[o][fi].setY(D);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
        break;
     case U:
-        blockU = block;
+         blockU = block;
+        for(int i=0; i<(128/DECIMATE) ; i++){
+            int fi = (QEangle[i]>>3)&1023;
+            qreal u = scale.U * Decimate(&block->samples[i] , Z[U]);
+            for(int mode=0; mode<2 ; mode++){
+                int o=3*mode;
+                switch(plotMode[mode]){
+                case SpaceVector:
+                    list[o][fi].setY(u);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
         break;
     case Angle:
         for(int mode=0; mode<2 ; mode++){
@@ -476,7 +529,7 @@ void MainWindow::parse(enum plots_e plot){
             switch(plotMode[mode]){
             case AlphaBetaOut:
                 for(int i=0; i<(128/DECIMATE) ; i++){
-                    int fi = (angle[i]>>3)&1023;
+                    int fi = (QEangle[i]>>3)&1023;
                     qreal u = blockU->samples[i*DECIMATE];
                     qreal a = block->samples[i*DECIMATE];
                     qreal arg = a*(2.0/6.0*M_PI/(1<<10));
@@ -490,7 +543,7 @@ void MainWindow::parse(enum plots_e plot){
                 break;
             case ABCOut:
                 for(int i=0; i<(128/DECIMATE) ; i++){
-                    int fi = (angle[i]>>3)&1023;
+                    int fi = (QEangle[i]>>3)&1023;
                     qreal u = blockU->samples[i*DECIMATE];
                     qreal a = block->samples[i*DECIMATE];
                     qreal arg = a*(2.0/6.0*M_PI/(1<<10));
@@ -501,6 +554,16 @@ void MainWindow::parse(enum plots_e plot){
                     list[o+1][fi].setY(UB);
                     list[o+2][fi].setY(UC);
                 }
+                break;
+            case SpaceVector:
+                for(int i=0; i<(128/DECIMATE) ; i++){
+                    int fi = (QEangle[i]>>3) & 1023;
+                    qreal angle = block->samples[i*DECIMATE]*scale.angle;
+                    list[o+1][fi].setY(0);
+                }
+                break;
+            default:
+                break;
             }
         }
         break;
@@ -515,13 +578,13 @@ void MainWindow::update_data(){
     while( Fifo->getSize() >= 8){
         Fifo->checkSize();
 /*1*/   unsigned block = parse_lowspeed();
-/*2*/   parse_angle();
+/*2*/   parse_angle(); //QE angle
 /*3*/   parse(IA );
 /*4*/   parse(IC );
-/*5*/   Fifo->read();
-/*6*/   Fifo->read();
+/*5*/   parse(Torque);
+/*6*/   parse(Flux);
 /*7*/   parse(U);
-/*8*/   parse(Angle);
+/*8*/   parse(Angle); // Space vector angle
 
         listIndex +=128/DECIMATE;
 
@@ -530,7 +593,7 @@ void MainWindow::update_data(){
             for(int i=0; i<6; i++)
                 series[i].replace(list[i]);
             gaugeWindow->setcurrentGauge(current);
-            float rpm = (angle[8191]-angle[0])* (60.0f/360.0f/dt/8.192);
+            float rpm = (QEangle[8191]-QEangle[0])* (60.0f/360.0f/dt/8.192);
             gaugeWindow->setShaftSpeed(rpm);
         }
         if( (block==0) | (fftIndexA>= FFT_LEN)){
@@ -730,8 +793,8 @@ void MainWindow::slot_Checkbox(int index){
 
                 break;
             case DQIn:
-                series[o].setName("Direct in");
-                series[o+1].setName("Quadrature in");
+                series[o].setName("Lowpass direct in floating point (Estimated Flux)");
+                series[o+1].setName("Lowpass quadrature in floating point (Estimated Torque)");
                 series[o].show();
                 series[o+1].show();
                 series[o+2].hide();
@@ -740,6 +803,28 @@ void MainWindow::slot_Checkbox(int index){
                 else
                     axisY1->setTitleText("Transformed I [A]");
 
+                break;
+            case DQIn_fix:
+                series[o].setName("Direct in fixed point (Estimated Flux)");
+                series[o+1].setName("Quadrature in fixed point (Estimated Torque)");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].hide();
+                if(i)
+                    axisY2->setTitleText("Transformed I [A]");
+                else
+                    axisY1->setTitleText("Transformed I [A]");
+                break;
+            case SpaceVector:
+                series[o].setName(  "Space-Vector output magnitude");
+                series[o+1].setName("Space-Vector output angle");
+                series[o].show();
+                series[o+1].show();
+                series[o+2].hide();
+                if(i)
+                    axisY2->setTitleText("Transformed U [V]");
+                else
+                    axisY1->setTitleText("Transformed U [V]");
                 break;
               }
     }
