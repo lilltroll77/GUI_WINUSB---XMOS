@@ -315,7 +315,7 @@ float MainWindow::filter(qreal x , enum plots_e plot ){
     return (float)y;
 }
 
-double MainWindow::Decimate(qint32* x , double z[2]){
+double MainWindow::Decimate(qint32* x , double* z){
     double y = 0.0;
     for(int i=0; i<DECIMATE ; i++){
         double X = x[i];
@@ -409,7 +409,7 @@ void MainWindow::parse(enum plots_e plot){
     switch(plot){
     case IA:
         for(int i=0; i<(128/DECIMATE) ; i++){
-            iA[i] = scale.Current * Decimate(&block->samples[i] , Z[IA]);
+            iA[i] = scale.Current * Decimate(&block->samples[i*DECIMATE] , Z[IA]);
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block->samples[readPos++];
                 fft_data[FFT_IA][FFT_wr_buff].sample[fftIndexA++] = val;
@@ -418,7 +418,7 @@ void MainWindow::parse(enum plots_e plot){
         break;
    case IC:
         for(int i=0; i<(128/DECIMATE) ; i++){
-            qreal ic = scale.Current * Decimate(&block->samples[i] , Z[IC]);
+            qreal ic = scale.Current * Decimate(&block->samples[i*DECIMATE] , Z[IC]);
             for( int d=0; d<DECIMATE ; d++ ){
                 qint32 val = block->samples[readPos++];
                 fft_data[FFT_IC][FFT_wr_buff].sample[fftIndexC++] = val;
@@ -477,7 +477,7 @@ void MainWindow::parse(enum plots_e plot){
     case Torque:
         for(int i=0; i<(128/DECIMATE) ; i++){
             int fi = (QEangle[i]>>3)&1023;
-            qreal Q = scale.Torque * Decimate(&block->samples[i] , Z[Torque]);
+            qreal Q = scale.Torque * Decimate(&block->samples[i*DECIMATE] , Z[Torque]);
             for(int mode=0; mode<2 ; mode++){
                 int o=3*mode;
                 switch(plotMode[mode]){
@@ -493,7 +493,7 @@ void MainWindow::parse(enum plots_e plot){
     case Flux:
         for(int i=0; i<(128/DECIMATE) ; i++){
             int fi = (QEangle[i]>>3)&1023;
-            qreal D = scale.Flux * Decimate(&block->samples[i] , Z[Flux]);
+            qreal D = scale.Flux * Decimate(&block->samples[i*DECIMATE] , Z[Flux]);
             for(int mode=0; mode<2 ; mode++){
                 int o=3*mode;
                 switch(plotMode[mode]){
@@ -510,7 +510,7 @@ void MainWindow::parse(enum plots_e plot){
          blockU = block;
         for(int i=0; i<(128/DECIMATE) ; i++){
             int fi = (QEangle[i]>>3)&1023;
-            qreal u = scale.U * Decimate(&block->samples[i] , Z[U]);
+            qreal u = scale.U * Decimate(&block->samples[i*DECIMATE] , Z[U]);
             for(int mode=0; mode<2 ; mode++){
                 int o=3*mode;
                 switch(plotMode[mode]){

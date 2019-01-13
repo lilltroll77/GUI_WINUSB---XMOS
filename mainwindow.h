@@ -86,7 +86,7 @@ private:
 
     void calcLogScale();
     float filter(qreal x , enum plots_e plot );
-    double Decimate(qint32 *x , double z[2]);
+    double Decimate(qint32 *x , double *z);
     void updatePhaseCurrent(qreal i , struct I_t &current ,  enum plots_e plot);
     void parse(enum plots_e plot );
     void parse_angle();
@@ -156,7 +156,7 @@ private:
     int load=0;
     qreal B[3]={ 0.003916126660547 , 0.007832253321095 , 0.003916126660547};
     qreal A[2]={ -1.815341082704568 , 0.831005589346757};
-    double Z[7][2]={{0}};
+    double Z[plotChoiceN][2]={{0}};
 };
 
 #endif // MAINWINDOW_H
